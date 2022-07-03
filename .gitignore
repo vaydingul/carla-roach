@@ -7,6 +7,6 @@ logs/
 outputs/
 wandb/
 *.pyc
-
+*.h5
 .vscode/settings.json
 carla_gym/envs/__pycache__/__init__.cpython-37.pyc

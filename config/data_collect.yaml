@@ -37,7 +37,7 @@ log_level: INFO
 host: localhost
 port: 2000
 seed: 2021
-no_rendering: false
+no_rendering: true
 kill_running: true
 wb_project: data_collect
 wb_notes: null

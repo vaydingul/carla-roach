@@ -32,6 +32,7 @@ class EgoVehicleHandler(object):
         ev_spawn_locations = []
         for ev_id in actor_config:
             bp_filter = actor_config[ev_id]['model']
+            print(bp_filter)
             blueprint = np.random.choice(self._world.get_blueprint_library().filter(bp_filter))
             blueprint.set_attribute('role_name', ev_id)
 

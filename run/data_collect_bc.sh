@@ -6,8 +6,8 @@ data_collect () {
   wb_project=il_leaderboard_roach \
   wb_group=bc_data \
   test_suites=lb_data \
-  n_episodes=160 \
-  dataset_root=/home/ubuntu/dataset/bc \
+  n_episodes=100 \
+  dataset_root=/home/vaydingul20/Documents/Codes/carla-roach/dataset \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
@@ -41,8 +41,8 @@ data_collect () {
 
 # NO NEED TO MODIFY THE FOLLOWING
 # actiate conda env
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate carla
+# source ~/miniconda3/etc/profile.d/conda.sh
+# conda activate carla_roach
 
 # remove checkpoint files
 rm outputs/checkpoint.txt
@@ -54,13 +54,15 @@ RED=$'\e[0;31m'
 NC=$'\e[0m'
 PYTHON_RETURN=1
 until [ $PYTHON_RETURN == 0 ]; do
+  export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/nvidia_icd.json"
   data_collect
   PYTHON_RETURN=$?
   echo "${RED} PYTHON_RETURN=${PYTHON_RETURN}!!! Start Over!!!${NC}" >&2
   sleep 2
 done
 
-killall -9 -r CarlaUE4-Linux
+killall -9 -r CarlaUE4-Linux-Shipping
+
 echo "Bash script done."
 
 # To shut down the aws instance after the script is finished
