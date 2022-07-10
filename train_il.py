@@ -16,10 +16,13 @@ log = logging.getLogger(__name__)
 @hydra.main(config_path='config', config_name='train_il')
 def main(cfg: DictConfig):
     set_random_seed(cfg.seed, using_cuda=False)
+    #cfg.cache_dir = "/home/vaydingul20/tmp_data/"
+    print(cfg.cache_dir)
 
     # caching dataset on the node
     # make sure the first one is the bc (behavior cloning) dataset
     bc_dataset_path = cfg.dagger_datasets[-1]
+    print(bc_dataset_path)
     if os.path.isdir(bc_dataset_path):
         log.info(f'Copying from {bc_dataset_path} to {cfg.cache_dir}')
         subprocess.call(f'rsync -a --info=progress2 {bc_dataset_path} {cfg.cache_dir}', shell=True)

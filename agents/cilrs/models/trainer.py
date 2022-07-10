@@ -48,7 +48,8 @@ class Trainer():
         log.info(f'number of gpus: {self.num_gpus}')
 
         # kwargs for dataloader
-        self.batch_size = batch_size * self.num_gpus
+        self.batch_size = 24#batch_size * self.num_gpus
+        print(self.batch_size)
         self.num_workers = num_workers
         self.im_augmentation = im_augmentation
         self.lr_schedule_factor = lr_schedule_factor
