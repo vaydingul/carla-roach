@@ -16,6 +16,7 @@ ax.set_title("Test")
 
 def animate(i):
     ax_image.set_data(f['step_%d/obs/central_rgb/data' % i])
+    print(f['step_%d/obs/central_rgb/data' % i][:])
     ax.set_title(
         f'Step {i} - Command = {f["step_%d/obs/gnss/command/" % i].value[0]} \n Throttle =  {f["step_%d/supervision/action/" % i].value[0]} - Steer =  {f["step_%d/supervision/action/" % i].value[1] % i} - Brake =  {f["step_%d/supervision/action/" % i].value[2]} \n Speed = {f["step_%d/obs/speed/speed" % i].value[0]}')
     
