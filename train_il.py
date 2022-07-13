@@ -7,18 +7,12 @@ from pathlib import Path
 import subprocess
 import numpy as np
 from stable_baselines3.common.utils import set_random_seed
-from importlib import import_module
 
-#from carla_gym.utils.config_utils import load_entry_point
+from carla_gym.utils import config_utils
 
 log = logging.getLogger(__name__)
 
 
-def load_entry_point(name):
-    mod_name, attr_name = name.split(":")
-    mod = import_module(mod_name)
-    fn = getattr(mod, attr_name)
-    return fn
 
 @hydra.main(config_path='config', config_name='train_il')
 def main(cfg: DictConfig):
@@ -105,7 +99,7 @@ def main(cfg: DictConfig):
     cfg_agent = cfg.agent[agent_name]
     OmegaConf.save(config=cfg_agent, f='config_agent.yaml')
 
-    AgentClass = load_entry_point(cfg_agent.entry_point)
+    AgentClass = config_utils.load_entry_point(cfg_agent.entry_point)
     agent = AgentClass('config_agent.yaml')
 
     # init wandb: save config_agent
