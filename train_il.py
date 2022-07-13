@@ -8,7 +8,7 @@ import subprocess
 import numpy as np
 from stable_baselines3.common.utils import set_random_seed
 
-from carla_gym.utils import config_utils
+from carla_gym.utils.config_utils import load_entry_point
 
 log = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def main(cfg: DictConfig):
     cfg_agent = cfg.agent[agent_name]
     OmegaConf.save(config=cfg_agent, f='config_agent.yaml')
 
-    AgentClass = config_utils.load_entry_point(cfg_agent.entry_point)
+    AgentClass = load_entry_point(cfg_agent.entry_point)
     agent = AgentClass('config_agent.yaml')
 
     # init wandb: save config_agent
