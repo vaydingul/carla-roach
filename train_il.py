@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import numpy as np
 from stable_baselines3.common.utils import set_random_seed
+from importlib import import_module
 
 #from carla_gym.utils.config_utils import load_entry_point
 
