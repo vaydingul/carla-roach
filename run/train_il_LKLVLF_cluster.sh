@@ -78,10 +78,10 @@ cache_dir="$1"
 # source ~/miniconda3/etc/profile.d/conda.sh
 # conda activate carla
 
-NODE_ROOT=/home/vaydingul20/tmp_data/
-mkdir -p "${NODE_ROOT}"
+#NODE_ROOT=/home/vaydingul20/tmp_data/
+#mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/home/vaydingul20/Documents/Codes/dataset_combined/"
+CACHE_DIR="/scratch/users/vaydingul20/dataset/dataset/expert"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
