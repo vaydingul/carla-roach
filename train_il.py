@@ -26,7 +26,7 @@ def main(cfg: DictConfig):
     print(bc_dataset_path)
     if os.path.isdir(bc_dataset_path):
         log.info(f'Copying from {bc_dataset_path} to {cfg.cache_dir}')
-        subprocess.call(f'rsync -a --info=progress2 {bc_dataset_path} {cfg.cache_dir}', shell=True)
+        subprocess.call(f'rsync -a {bc_dataset_path} {cfg.cache_dir}', shell=True)
     else:
         try:
             api = wandb.Api()
