@@ -24,20 +24,20 @@ def main(cfg: DictConfig):
     # make sure the first one is the bc (behavior cloning) dataset
     bc_dataset_path = cfg.dagger_datasets[-1]
     print(bc_dataset_path)
-    if os.path.isdir(bc_dataset_path):
-        log.info(f'Copying from {bc_dataset_path} to {cfg.cache_dir}')
-        subprocess.call(f'rsync -a --progress {bc_dataset_path} {cfg.cache_dir}', shell=True)
-    else:
-        try:
-            api = wandb.Api()
-            run = api.run(bc_dataset_path)
-            log.info(f'Downloading dataset from wandb run: {bc_dataset_path}')
-            all_hf = [f for f in run.files() if '.h5' in f.name]
-            for i, data_hf in enumerate(all_hf):
-                log.info(f'{i+1}/{len(all_hf)}: Downloading {data_hf.name} to {cfg.cache_dir}')
-                data_hf.download(replace=True, root=cfg.cache_dir)
-        except:
-            log.warning(f'Error downloading dataset from wandb run {bc_dataset_path}')
+    #if os.path.isdir(bc_dataset_path):
+    #    log.info(f'Copying from {bc_dataset_path} to {cfg.cache_dir}')
+    #    subprocess.call(f'rsync -a --progress {bc_dataset_path} {cfg.cache_dir}', shell=True)
+    #else:
+    #    try:
+    #        api = wandb.Api()
+    #        run = api.run(bc_dataset_path)
+    #        log.info(f'Downloading dataset from wandb run: {bc_dataset_path}')
+    #        all_hf = [f for f in run.files() if '.h5' in f.name]
+    #        for i, data_hf in enumerate(all_hf):
+    #            log.info(f'{i+1}/{len(all_hf)}: Downloading {data_hf.name} to {cfg.cache_dir}')
+    #            data_hf.download(replace=True, root=cfg.cache_dir)
+    #    except:
+    #        log.warning(f'Error downloading dataset from wandb run {bc_dataset_path}')
     list_bc_h5 = list(Path(cfg.cache_dir).glob('expert/*.h5'))
     n_ep_bc = len(list_bc_h5)
     bc_size = sum(f.stat().st_size for f in list_bc_h5)
