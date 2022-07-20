@@ -7,12 +7,32 @@ import wandb
 from pathlib import Path
 import numpy as np
 import copy
+from itertools import islice, tee
+import collections
 
 from .utils.dataset import get_dataloader
 from .utils.branched_loss import BranchedLoss
 
 log = logging.getLogger(__name__)
 
+def consume(iterator, n):
+    "Advance the iterator n-steps ahead. If n is none, consume entirely."
+    # Use functions that consume iterators at C speed.
+    if n is None:
+        # feed the entire iterator into a zero-length deque
+        collections.deque(iterator, maxlen=0)
+    else:
+        # advance to the empty slice starting at position n
+        next(islice(iterator, n, n), None)
+
+def window(iterable, n=2):
+    "s -> (s0, ...,s(n-1)), (s1, ...,sn), (s2, ..., s(n+1)), ..."
+    iters = tee(iterable, n)
+    # Could use enumerate(islice(iters, 1, None), 1) to avoid consume(it, 0), but that's
+    # slower for larger window sizes, while saving only small fixed "noop" cost
+    for i, it in enumerate(iters):
+        consume(it, i)
+    return zip(*iters)
 
 class Trainer():
     def __init__(self, policy,
@@ -60,6 +80,7 @@ class Trainer():
 
         self.iteration = starting_iteration
 
+        
         self.criterion = BranchedLoss(branch_weights, action_weights, speed_weight,
                                       value_weight, features_weight, l1_loss, action_kl, action_agg, action_mll)
 
@@ -152,19 +173,29 @@ class Trainer():
     def _train(self, dataset):
         self.policy = self.policy.train()
 
-        for command, policy_input, supervision in dataset:
+        #for command, policy_input, supervision in window(dataset, self.policy.number_of_steps):
+        for data in window(dataset, self.policy.number_of_steps + 1):
+            
             t0 = time.time()
-            # mem_available = psutil.virtual_memory().available
-            # print(f'memory available {mem_available/1e9:.2f}GB')
 
-            policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
-            supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
-            command = th.as_tensor(command).to(self.device)
+            command_vec = []
+            policy_input_vec = []
+            supervision_vec = []
+
+            for k in range(self.policy.number_of_steps):
+
+                # mem_available = psutil.virtual_memory().available
+                # print(f'memory available {mem_available/1e9:.2f}GB')
+                command, policy_input, supervision = data[k]
+
+                policy_input_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()]))
+                supervision_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()]))
+                command_vec.append(th.as_tensor(command).to(self.device))
 
             self.optimizer.zero_grad()
-            outputs = self.policy.forward(**policy_input)
+            outputs = self.policy.forward(**policy_input_vec[0])
 
-            action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision, command)
+            action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision_vec, command_vec[0])
             loss = action_loss+speed_loss+value_loss+features_loss
             loss.backward()
             self.optimizer.step()
@@ -187,23 +218,34 @@ class Trainer():
         speed_losses = []
         value_losses = []
         features_losses = []
-        for command, policy_input, supervision in dataset:
 
-            policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
-            supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
-            command = th.as_tensor(command).to(self.device)
+        for data in window(dataset, self.policy.number_of_steps + 1):
+            
+            command_vec = []
+            policy_input_vec = []
+            supervision_vec = []
 
-            # controls = data['cmd']
-            with th.no_grad():
-                outputs = self.policy.forward(**policy_input)
-                action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(
-                    outputs, supervision, command)
-                loss = action_loss+speed_loss+value_loss+features_loss
-                losses.append(loss.item())
-                action_losses.append(action_loss.item())
-                speed_losses.append(speed_loss.item())
-                value_losses.append(value_loss.item())
-                features_losses.append(features_loss.item())
+            for k in range(self.policy.number_of_steps):
+
+                # mem_available = psutil.virtual_memory().available
+                # print(f'memory available {mem_available/1e9:.2f}GB')
+                command, policy_input, supervision = data[k]
+
+                policy_input_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()]))
+                supervision_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()]))
+                command_vec.append(th.as_tensor(command).to(self.device))
+
+                # controls = data['cmd']
+                with th.no_grad():
+                    outputs = self.policy.forward(**policy_input_vec[0])
+                    action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(
+                        outputs, supervision_vec, command_vec[0])
+                    loss = action_loss+speed_loss+value_loss+features_loss
+                    losses.append(loss.item())
+                    action_losses.append(action_loss.item())
+                    speed_losses.append(speed_loss.item())
+                    value_losses.append(value_loss.item())
+                    features_losses.append(features_loss.item())
 
         loss = np.mean(losses)
         action_loss = np.mean(action_losses)
