@@ -42,14 +42,11 @@ class MultiStep(nn.Module):
 		self.policy_head_sigma = params['policy_head_sigma']
 		self.number_of_steps = params['number_of_steps']
 
-		# NOTE: First hidden state is the feature extracted from the image and 
+		# TODO: First hidden state is the feature extracted from the image and 
 		# the high level command module
 
-		# NOTE: First input is [0, 0] vector according to the TransFuser paper
+		# TODO: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
 
-		# NOTE: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
-
-		self.recurrent_cell = 
 	def forward(self, j):
 		
 		mu_vector = []

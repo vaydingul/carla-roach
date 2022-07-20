@@ -129,6 +129,7 @@ class Trainer():
             self._train(train_dataset)
 
             # val
+            print("VALLLLL")
             t_val = time.time()
             val_loss, val_action_loss, val_speed_loss, val_value_loss, val_features_loss = \
                 self._validate(val_dataset, idx_epoch)
@@ -182,7 +183,7 @@ class Trainer():
             policy_input_vec = []
             supervision_vec = []
 
-            for k in range(self.policy.number_of_steps):
+            for k in range(len(data)):
 
                 # mem_available = psutil.virtual_memory().available
                 # print(f'memory available {mem_available/1e9:.2f}GB')
@@ -193,7 +194,7 @@ class Trainer():
                 command_vec.append(th.as_tensor(command).to(self.device))
 
             self.optimizer.zero_grad()
-            outputs = self.policy.forward(**policy_input_vec[0])
+            outputs = self.policy.forward(**(policy_input_vec[0]))
 
             action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision_vec, command_vec[0])
             loss = action_loss+speed_loss+value_loss+features_loss
@@ -218,34 +219,33 @@ class Trainer():
         speed_losses = []
         value_losses = []
         features_losses = []
-
         for data in window(dataset, self.policy.number_of_steps + 1):
             
             command_vec = []
             policy_input_vec = []
             supervision_vec = []
-
-            for k in range(self.policy.number_of_steps):
+            for k in range(len(data)):
 
                 # mem_available = psutil.virtual_memory().available
                 # print(f'memory available {mem_available/1e9:.2f}GB')
+                print("iter", k)
                 command, policy_input, supervision = data[k]
 
                 policy_input_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()]))
                 supervision_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()]))
                 command_vec.append(th.as_tensor(command).to(self.device))
 
-                # controls = data['cmd']
-                with th.no_grad():
-                    outputs = self.policy.forward(**policy_input_vec[0])
-                    action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(
-                        outputs, supervision_vec, command_vec[0])
-                    loss = action_loss+speed_loss+value_loss+features_loss
-                    losses.append(loss.item())
-                    action_losses.append(action_loss.item())
-                    speed_losses.append(speed_loss.item())
-                    value_losses.append(value_loss.item())
-                    features_losses.append(features_loss.item())
+            # controls = data['cmd']
+            with th.no_grad():
+                outputs = self.policy.forward(**(policy_input_vec[0]))
+                action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(
+                    outputs, supervision_vec, command_vec[0])
+                loss = action_loss+speed_loss+value_loss+features_loss
+                losses.append(loss.item())
+                action_losses.append(action_loss.item())
+                speed_losses.append(speed_loss.item())
+                value_losses.append(value_loss.item())
+                features_losses.append(features_loss.item())
 
         loss = np.mean(losses)
         action_loss = np.mean(action_losses)
