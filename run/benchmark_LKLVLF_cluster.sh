@@ -54,9 +54,9 @@ agent="roaming"
    python -u benchmark.py resume=true log_video=true \
    wb_project=iccv21-roach-benchmark \
    agent=$agent actors.hero.agent=$agent \
-   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/2rjhvifn \
-   'wb_group="L_K + L_V scratch"' \
-   'wb_notes="Benchmark L_K + L_V on Leaderboard New Weather/ New Town."' \
+   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/iwbwatdr \
+   'wb_group="L_K + L_V + L_F(c) scratch"' \
+   'wb_notes="Benchmark L_K + L_V + L_F(c) on Leaderboard New Weather/ New Town."' \
    test_suites=lb_test_nn_new \
    seed=2021 \
    +wb_sub_group=leaderboard_dense-2021 \
