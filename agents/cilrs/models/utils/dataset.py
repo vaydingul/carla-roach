@@ -3,23 +3,27 @@ import copy
 import h5py
 import numpy as np
 import logging
-
+import torch
 from torch.utils.data import Dataset, DataLoader
+
+
 from . import augmenter
 
 log = logging.getLogger(__name__)
 
 
 class CilrsDataset(Dataset):
-    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None):
+    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps=0):
 
         self._env_wrapper = env_wrapper
         self._im_augmenter = im_augmenter
         self._batch_read_number = 0
         self._im_stack_idx = env_wrapper.im_stack_idx
+        self.number_of_steps = number_of_steps
 
         if env_wrapper.view_augmentation:
-            self._obs_keys_to_load = ['speed', 'gnss', 'central_rgb', 'left_rgb', 'right_rgb']
+            self._obs_keys_to_load = ['speed', 'gnss',
+                                      'central_rgb', 'left_rgb', 'right_rgb']
         else:
             self._obs_keys_to_load = ['speed', 'gnss', 'central_rgb']
 
@@ -38,7 +42,8 @@ class CilrsDataset(Dataset):
                 for step_str, group_step in hf.items():
                     if group_step.attrs['critical']:
                         current_step = int(step_str.split('_')[-1])
-                        im_stack_idx_list = [max(0, current_step+i+1) for i in self._im_stack_idx]
+                        im_stack_idx_list = [
+                            max(0, current_step+i+1) for i in self._im_stack_idx]
 
                         obs_dict = {}
                         for obs_key in self._obs_keys_to_load:
@@ -56,7 +61,8 @@ class CilrsDataset(Dataset):
                         supervision_dict = self.read_group_to_dict(group_step['supervision'],
                                                                    [h5_path, step_str, 'supervision'])
                         self._obs_list.append(obs_dict)
-                        self._supervision_list.append(self._env_wrapper.process_supervision(supervision_dict))
+                        self._supervision_list.append(
+                            self._env_wrapper.process_supervision(supervision_dict))
                         n_frames += 1
         return n_frames
 
@@ -71,9 +77,31 @@ class CilrsDataset(Dataset):
         return data_dict
 
     def __len__(self):
-        return len(self._obs_list)
+        return len(self._obs_list) - self.number_of_steps
 
-    def __getitem__(self, idx):
+    def __getitem__(self, index: int):
+
+        supervision_vec = []
+
+        supervision_ = {}
+
+        command, policy_input, supervision = self._getitem(index)
+        # command_vec.append(command)
+        # policy_input_vec.append(policy_input)
+        supervision_vec.append(supervision)
+
+        for ix in range(index + 1, index + self.number_of_steps):
+
+            _, _, supervision = self._getitem(ix)
+            supervision_vec.append(supervision)
+
+        for k in supervision_vec[0].keys():
+            supervision_[k] = torch.stack(
+                [supervision[k] for supervision in supervision_vec], dim=0)
+
+        return command, policy_input, supervision_
+
+    def _getitem(self, idx):
 
         obs = copy.deepcopy(self._obs_list[idx])
 
@@ -112,7 +140,7 @@ class CilrsDataset(Dataset):
         return command, policy_input, supervision
 
 
-def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8):
+def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps=0):
 
     def make_dataset(list_expert_h5, list_dagger_h5, is_train):
 
@@ -121,9 +149,10 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
         else:
             im_augmenter = None
 
-        dataset = CilrsDataset(list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter)
+        dataset = CilrsDataset(
+            list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps)
         dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
-                                shuffle=False, drop_last=True, pin_memory=False)
+                                shuffle=True, drop_last=True, pin_memory=False)
         return dataloader, dataset.expert_frames, dataset.dagger_frames
 
     dataset_path = Path(dataset_dir)
@@ -131,22 +160,27 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
     list_expert_h5 = list(dataset_path.glob('expert/*.h5'))
     list_dagger_h5 = list(dataset_path.glob('*/*/*.h5'))
 
-    list_expert_h5 = sorted(list_expert_h5, key=lambda x: int(x.name.split('.')[0]))
-    list_dagger_h5 = sorted(list_dagger_h5, key=lambda x: int(x.name.split('.')[0]))
+    list_expert_h5 = sorted(
+        list_expert_h5, key=lambda x: int(x.name.split('.')[0]))
+    list_dagger_h5 = sorted(
+        list_dagger_h5, key=lambda x: int(x.name.split('.')[0]))
 
-    list_expert_h5_train = [x for i, x in enumerate(list_expert_h5) if i % 10 != 0]
-    list_dagger_h5_train = [x for i, x in enumerate(list_dagger_h5) if i % 10 != 0]
+    list_expert_h5_train = [x for i, x in enumerate(
+        list_expert_h5) if i % 10 != 0]
+    list_dagger_h5_train = [x for i, x in enumerate(
+        list_dagger_h5) if i % 10 != 0]
 
-    list_expert_h5_val = [x for i, x in enumerate(list_expert_h5) if i % 10 == 0]
-    list_dagger_h5_val = [x for i, x in enumerate(list_dagger_h5) if i % 10 == 0]
-
-    # list_h5_train = list_h5[:2]
-    # list_h5_val = list_h5[0:1]
+    list_expert_h5_val = [x for i, x in enumerate(
+        list_expert_h5) if i % 10 == 0]
+    list_dagger_h5_val = [x for i, x in enumerate(
+        list_dagger_h5) if i % 10 == 0]
 
     log.info(f'Loading training dataset')
-    train, train_expert_frames, train_dagger_frames = make_dataset(list_expert_h5_train, list_dagger_h5_train, True)
+    train, train_expert_frames, train_dagger_frames = make_dataset(
+        list_expert_h5_train, list_dagger_h5_train, True)
     log.info(f'Loading validation dataset')
-    val, val_expert_frames, val_dagger_frames = make_dataset(list_expert_h5_val, list_dagger_h5_val, False)
+    val, val_expert_frames, val_dagger_frames = make_dataset(
+        list_expert_h5_val, list_dagger_h5_val, False)
 
     log.info(f'TRAIN expert episodes: {len(list_expert_h5_train)}, DAGGER episodes: {len(list_dagger_h5_train)}, '
              f'expert hours: {train_expert_frames/10/3600:.2f}, DAGGER hours: {train_dagger_frames/10/3600:.2f}.')
@@ -154,7 +188,6 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
              f'expert hours: {val_expert_frames/10/3600:.2f}, DAGGER hours: {val_dagger_frames/10/3600:.2f}.')
 
     return train, val
-
 
 
 # class CilrsDataset(Dataset):

@@ -1,3 +1,4 @@
+from pprint import pprint
 import torch as th
 from torch.nn import functional as F
 from torch.distributions import Beta, Normal
@@ -26,6 +27,9 @@ class BranchedLoss():
         
     def forward(self, outputs, supervisions, commands):
         commands.clamp_(0, self.n_branches-1)
+
+        number_of_steps = supervisions['action_mu'].shape[1] - 1 
+        
         # action loss
         branch_masks = self._get_branch_masks(commands, self.n_branches, self.n_actions)
         action_loss = 0.0
@@ -36,11 +40,10 @@ class BranchedLoss():
             if self.action_kl:
                 # probability output, kl loss
                 kl_loss = 0.
-                number_of_steps = outputs['pred_mu'].shape[1] - 1 
                 assert self.n_branches == 1, "Number of branches must be 1 for multi-step architecture"
 
                 for i in range(number_of_steps + 1):
-                    dist_sup = Beta(supervisions[i]['action_mu'], supervisions[i]['action_sigma'])
+                    dist_sup = Beta(supervisions['action_mu'][:, i, :], supervisions['action_sigma'][:, i, :])
                     dist_pred = Beta(outputs['pred_mu'][:, i, :], outputs['pred_sigma'][:, i, :])
                     kl_div = th.distributions.kl_divergence(dist_sup, dist_pred)
 
@@ -64,30 +67,30 @@ class BranchedLoss():
 
         # speed_loss
         speed_loss = th.zeros_like(action_loss)
-        if 'pred_speed' in outputs and 'speed' in supervisions[0]:
+        if 'pred_speed' in outputs and 'speed' in supervisions:
             
-            speed_loss = self.loss(outputs['pred_speed'], supervisions[0]['speed'])
+            speed_loss = self.loss(outputs['pred_speed'], supervisions['speed'][:, 0, :])
 
         # value_loss
         value_loss = th.zeros_like(action_loss)
-        if 'pred_value' in outputs and 'value' in supervisions[0]:
-            value_loss = F.mse_loss(outputs['pred_value'], supervisions[0]['value'])
+        if 'pred_value' in outputs and 'value' in supervisions:
+            value_loss = F.mse_loss(outputs['pred_value'], supervisions['value'][:, 0, :])
 
         # features_loss
         feature_loss = th.zeros_like(action_loss)
-        if 'pred_features' in outputs and 'features' in supervisions[0]:
+        if 'pred_features' in outputs and 'features' in supervisions:
             feature_loss = 0.
-            number_of_steps = outputs['pred_features'].shape[1] - 1
+            
 
             for i in range(number_of_steps + 1):
 
                 if i == 0:
 
-                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features'])
+                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions['features'][:, i, :])
 
                 else:
 
-                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features']) / number_of_steps
+                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions['features'][:, i, :]) / number_of_steps
 
 
 
