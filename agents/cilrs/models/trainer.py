@@ -129,7 +129,6 @@ class Trainer():
             self._train(train_dataset)
 
             # val
-            print("VALLLLL")
             t_val = time.time()
             val_loss, val_action_loss, val_speed_loss, val_value_loss, val_features_loss = \
                 self._validate(val_dataset, idx_epoch)
@@ -193,6 +192,7 @@ class Trainer():
                 supervision_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()]))
                 command_vec.append(th.as_tensor(command).to(self.device))
 
+            
             self.optimizer.zero_grad()
             outputs = self.policy.forward(**(policy_input_vec[0]))
 
@@ -228,7 +228,6 @@ class Trainer():
 
                 # mem_available = psutil.virtual_memory().available
                 # print(f'memory available {mem_available/1e9:.2f}GB')
-                print("iter", k)
                 command, policy_input, supervision = data[k]
 
                 policy_input_vec.append(dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()]))

@@ -39,7 +39,6 @@ class BranchedLoss():
                 number_of_steps = outputs['pred_mu'].shape[1] - 1 
                 assert self.n_branches == 1, "Number of branches must be 1 for multi-step architecture"
 
-                
                 for i in range(number_of_steps + 1):
                     dist_sup = Beta(supervisions[i]['action_mu'], supervisions[i]['action_sigma'])
                     dist_pred = Beta(outputs['pred_mu'][:, i, :], outputs['pred_sigma'][:, i, :])
@@ -65,34 +64,38 @@ class BranchedLoss():
 
         # speed_loss
         speed_loss = th.zeros_like(action_loss)
-        if 'pred_speed' in outputs and 'speed' in supervisions:
-            speed_loss = self.loss(outputs['pred_speed'], supervisions[0]['speed']) * self.speed_weight
+        if 'pred_speed' in outputs and 'speed' in supervisions[0]:
+            
+            speed_loss = self.loss(outputs['pred_speed'], supervisions[0]['speed'])
 
         # value_loss
         value_loss = th.zeros_like(action_loss)
-        if 'pred_value' in outputs and 'value' in supervisions:
-            value_loss = F.mse_loss(outputs['pred_value'], supervisions[0]['value']) * self.value_weight
+        if 'pred_value' in outputs and 'value' in supervisions[0]:
+            value_loss = F.mse_loss(outputs['pred_value'], supervisions[0]['value'])
 
         # features_loss
-        features_loss = th.zeros_like(action_loss)
-        if 'pred_features' in outputs and 'features' in supervisions:
+        feature_loss = th.zeros_like(action_loss)
+        if 'pred_features' in outputs and 'features' in supervisions[0]:
             feature_loss = 0.
             number_of_steps = outputs['pred_features'].shape[1] - 1
 
             for i in range(number_of_steps + 1):
 
                 if i == 0:
-                    print(outputs['pred_features'].shape)
-                    feature_loss += self.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features'])
+
+                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features'])
 
                 else:
 
-                    feature_loss += self.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features']) / number_of_steps
+                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :], supervisions[i]['features']) / number_of_steps
 
 
 
 
-        return action_loss, speed_loss, value_loss, features_loss
+        return action_loss ,\
+             speed_loss * self.speed_weight,\
+             value_loss * self.value_weight,\
+             feature_loss * self.features_weight
 
     @staticmethod
     def _get_branch_masks(commands, n_branches, n_actions):
