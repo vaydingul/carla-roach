@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # * To benchmark the Autopilot.
-agent="roaming"
+#agent="roaming"
 #benchmark () {
 #  python -u benchmark.py resume=true log_video=true \
 #  wb_project=iccv21-roach-benchmark \
@@ -55,7 +55,7 @@ agent="roaming"
    wb_project=iccv21-roach-benchmark \
    agent=$agent actors.hero.agent=$agent \
    agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/2rjhvifn \
-   'wb_group="L_K + L_V scratch"' \
+   'wb_group="L_K + L_V scratch (2)"' \
    'wb_notes="Benchmark L_K + L_V on Leaderboard New Weather/ New Town."' \
    test_suites=lb_test_nn_new \
    seed=2021 \
