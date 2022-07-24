@@ -2,7 +2,7 @@
 entry_point: agents.cilrs.models.trainer:Trainer
 kwargs:
   batch_size: 64
-  num_workers: 4
+  num_workers: 0
   learning_rate: 0.0002
   lr_schedule_factor: 0.5
   branch_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
