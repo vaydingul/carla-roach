@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import logging
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from . import augmenter
 
 log = logging.getLogger(__name__)
