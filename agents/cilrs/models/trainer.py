@@ -26,6 +26,7 @@ class Trainer():
                  speed_weight=0.05,
                  value_weight=0.0,
                  features_weight=0.0,
+                 action_loss_weight = 1.0,
                  l1_loss=True,
                  action_kl=True,
                  action_agg=None,
@@ -67,7 +68,7 @@ class Trainer():
 
         
         self.criterion = BranchedLoss(branch_weights, action_weights, speed_weight,
-                                      value_weight, features_weight, l1_loss, action_kl, action_agg, action_mll)
+                                      value_weight, features_weight, action_loss_weight, l1_loss, action_kl, action_agg, action_mll)
 
         self.policy = policy.to(self.device)
         # print number of model params
@@ -78,7 +79,7 @@ class Trainer():
         # optimizer / lr_scheduler
         self.learning_rate = learning_rate
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
-        self.scheduler = self.get_lr_scheduler()
+        #self.scheduler = self.get_lr_scheduler()
 
         # path to save ckpt
         self._ckpt_dir = Path('ckpt')
@@ -96,7 +97,7 @@ class Trainer():
             self.iteration = 0
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.learning_rate
-            self.scheduler = self.get_lr_scheduler()
+            #self.scheduler = self.get_lr_scheduler()
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
                                                     self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps)
@@ -128,7 +129,7 @@ class Trainer():
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
 
             # update lr
-            self.scheduler.step(val_loss)
+            #self.scheduler.step(val_loss)
 
             # save checkpoint
             # if (idx_epoch==0) or (idx_epoch>5 and val_loss < best_val_loss):
@@ -151,9 +152,9 @@ class Trainer():
 
             ckpt_path = (self._ckpt_dir / f'ckpt_{idx_epoch}.pth').as_posix()
             
-        self.save(ckpt_path)
-        log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
-        wandb.save(ckpt_path)
+            #self.save(ckpt_path)
+            #log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
+            #wandb.save(ckpt_path)
         log.info('Learn Finished')
 
     def _train(self, dataset):

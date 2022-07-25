@@ -6,7 +6,7 @@ from torch.distributions import Beta, Normal
 EPS = 1e-5
 
 class BranchedLoss():
-    def __init__(self, branch_weights, action_weights, speed_weight, value_weight, features_weight, l1_loss,
+    def __init__(self, branch_weights, action_weights, speed_weight, value_weight, features_weight, action_loss_weight, l1_loss,
                  action_kl, action_agg, action_mll):
         if l1_loss:
             self.loss = F.l1_loss
@@ -18,6 +18,7 @@ class BranchedLoss():
         self.speed_weight = speed_weight
         self.value_weight = value_weight
         self.features_weight = features_weight
+        self.action_loss_weight = action_loss_weight
         self.action_kl = action_kl
         self.action_mll = action_mll
         self.action_agg = action_agg

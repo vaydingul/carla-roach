@@ -10,14 +10,14 @@ kwargs:
   join_neurons: [512, 512, 256]
   join_dropouts: [0.0, 0.0, 0.0]
   speed_branch_neurons: [256, 256]
-  speed_branch_dropouts: [0.0, 0.5]
+  speed_branch_dropouts: [0.0, 0.0] #[0.0, 0.5]
   value_branch_neurons: [256, 256]
-  value_branch_dropouts: [0.0, 0.5]
+  value_branch_dropouts: [0.0, 0.0] #[0.0, 0.5]
   number_of_branches: 6
   branches_neurons: [256, 256]
-  branches_dropouts: [0.0, 0.5]
+  branches_dropouts: [0.0, 0.0] #[0.0, 0.5]
   multi_step_neurons: [256, 256]
-  multi_step_dropouts: [0.0, 0.5]
+  multi_step_dropouts: [0.0, 0.0] #[0.0, 0.5]
   number_of_steps: 4
   squash_outputs: false
   perception_net: resnet34
