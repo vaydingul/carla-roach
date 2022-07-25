@@ -151,7 +151,7 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
 
         dataset = CilrsDataset(
             list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps)
-        dataloader = DataLoader(Subset(dataset, range(20)), batch_size=batch_size, num_workers=num_workers,
+        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
                                 shuffle=True, drop_last=True, pin_memory=False)
         return dataloader, dataset.expert_frames, dataset.dagger_frames
 

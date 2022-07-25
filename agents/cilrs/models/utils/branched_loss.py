@@ -96,7 +96,7 @@ class BranchedLoss():
 
 
 
-        return action_loss ,\
+        return action_loss * self.action_loss_weight ,\
              speed_loss * self.speed_weight,\
              value_loss * self.value_weight,\
              feature_loss * self.features_weight
