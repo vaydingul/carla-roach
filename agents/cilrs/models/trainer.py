@@ -101,6 +101,11 @@ class Trainer():
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
                                                     self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps)
+        
+        log.info(f'Train dataloader size: {len(train_dataset)}')
+        log.info(f'Val dataloader size: {len(val_dataset)}')
+        log.info(f'Number of workers: {self.num_workers}')
+        
         # multi-gpu
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
