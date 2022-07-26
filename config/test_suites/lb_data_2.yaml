@@ -1,0 +1,7 @@
+# @package _group_
+- env_id: Endless-v0
+  env_configs:
+    carla_map: Town06
+    num_zombie_vehicles: [80, 160]
+    num_zombie_walkers: [40, 120]
+    weather_group: train

@@ -6,8 +6,8 @@ data_collect () {
   wb_project=il_leaderboard_roach \
   wb_group=bc_data_carla_0_9_10_1 \
   test_suites=lb_data \
-  n_episodes=80 \
-  dataset_root=/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1 \
+  n_episodes=20 \
+  dataset_root=/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1_town06 \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
