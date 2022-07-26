@@ -152,10 +152,12 @@ class Trainer():
     def _train(self, dataset):
         self.policy = self.policy.train()
 
+        t_data_read = time.time()        
         for command, policy_input, supervision in dataset:
             t0 = time.time()
             # mem_available = psutil.virtual_memory().available
             # print(f'memory available {mem_available/1e9:.2f}GB')
+            t_data_read_duration = t0 - t_data_read
 
             policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
             supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
@@ -175,9 +177,12 @@ class Trainer():
                 'train/speed_loss': speed_loss.item(),
                 'train/value_loss': value_loss.item(),
                 'train/features_loss': features_loss.item(),
-                'time/train_fps': self.batch_size / (time.time()-t0)
+                'time/train_fps': self.batch_size / (time.time()-t0),
+                'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
             self.iteration += self.batch_size
+
+            t_data_read = time.time()       
 
     def _validate(self, dataset, idx_epoch):
         self.policy = self.policy.eval()
