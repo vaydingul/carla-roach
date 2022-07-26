@@ -105,7 +105,7 @@ class Trainer():
         log.info(f'Train dataloader size: {len(train_dataset)}')
         log.info(f'Val dataloader size: {len(val_dataset)}')
         log.info(f'Number of workers: {self.num_workers}')
-        
+
         # multi-gpu
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
@@ -173,7 +173,7 @@ class Trainer():
             t0 = time.time()
             
             t_data_read_duration = t0 - t_data_read
-
+            log.info(f'Data read duration: {(self.batch_size/t_data_read_duration):.2f}')
 
             policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
             supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
@@ -197,6 +197,7 @@ class Trainer():
                 'time/train_fps': self.batch_size / (time.time()-t0),
                 'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
+            log.info(f'Train FPS: {self.batch_size / (time.time()-t0):.2f}')
             self.iteration += self.batch_size
 
             t_data_read = time.time()
