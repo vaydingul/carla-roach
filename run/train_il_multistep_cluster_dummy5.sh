@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=true \
-wb_project="il_leaderboard_roach" wb_group="train_multi_step_control_data_read" 'wb_name="L_K+L_V (cluster) nw=0"' \
+wb_project="il_leaderboard_roach" wb_group="train_multi_step_control_data_read" 'wb_name="L_K+L_V (cluster) nw=16"' \
 dagger_datasets=["/userfiles/vaydingul20/dummy/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
@@ -38,7 +38,7 @@ agent.cilrs.training.kwargs.value_weight=0.001 \
 agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
 agent.cilrs.training.kwargs.features_weight=0.0 \
 agent.cilrs.training.kwargs.batch_size=64 \
-agent.cilrs.training.kwargs.num_workers=0 \
+agent.cilrs.training.kwargs.num_workers=16 \
 cache_dir="$1"
 }
 
