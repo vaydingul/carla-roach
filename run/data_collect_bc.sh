@@ -5,7 +5,7 @@ data_collect () {
   python -u data_collect.py resume=true log_video=false save_to_wandb=false \
   wb_project=il_leaderboard_roach \
   wb_group=bc_data_carla_0_9_10_1 \
-  test_suites=lb_data \
+  test_suites=lb_data_2 \
   n_episodes=20 \
   dataset_root=/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1_town06 \
   actors.hero.driver=ppo \
