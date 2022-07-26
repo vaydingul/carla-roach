@@ -190,7 +190,7 @@ class Trainer():
                 'train/value_loss': value_loss.item(),
                 'train/features_loss': features_loss.item(),
                 'time/train_fps': self.batch_size / (time.time()-t0),
-                'time/train_data_read_duration': t_data_read_duration
+                'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
             self.iteration += self.batch_size
 
