@@ -27,7 +27,7 @@ train_il () {
 python -u train_il.py reset_step=true \
 agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/2rjhvifn agent.cilrs.wb_ckpt_step=24 \
 wb_project="il_leaderboard_roach" wb_group="train_from_scratch" 'wb_name="L_K+L_V contd"' \
-dagger_datasets=["/userfiles/vaydingul20/dataset/dataset"] \
+dagger_datasets=["/userfiles/vaydingul20/dataset/dataset/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
