@@ -53,7 +53,6 @@ class Trainer():
         self.batch_size = batch_size * self.num_gpus
 
         log.info(f'Number of GPUs: {self.num_gpus}')
-        log.info(f'Number of steps: {self.number_of_steps}')
         log.info(f'Batch size: {self.batch_size}')
 
         self.num_workers = num_workers
@@ -105,7 +104,7 @@ class Trainer():
         log.info(f'Val dataloader size: {len(val_dataset)}')
         log.info(f'Number of workers: {self.num_workers}')
 
-        
+
         # multi-gpu
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
