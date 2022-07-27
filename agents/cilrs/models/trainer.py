@@ -47,9 +47,15 @@ class Trainer():
         self.num_gpus = th.cuda.device_count()
         log.info(f'number of gpus: {self.num_gpus}')
 
+        batch_size = 192
+        num_workers = 8
         # kwargs for dataloader
         self.batch_size = batch_size * self.num_gpus
-        print(self.batch_size)
+
+        log.info(f'Number of GPUs: {self.num_gpus}')
+        log.info(f'Number of steps: {self.number_of_steps}')
+        log.info(f'Batch size: {self.batch_size}')
+
         self.num_workers = num_workers
         self.im_augmentation = im_augmentation
         self.lr_schedule_factor = lr_schedule_factor
@@ -94,6 +100,12 @@ class Trainer():
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
                                                     self.im_augmentation, self.batch_size, self.num_workers)
+
+        log.info(f'Train dataloader size: {len(train_dataset)}')
+        log.info(f'Val dataloader size: {len(val_dataset)}')
+        log.info(f'Number of workers: {self.num_workers}')
+
+        
         # multi-gpu
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
