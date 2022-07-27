@@ -38,6 +38,7 @@ agent.cilrs.training.kwargs.value_weight=0.001 \
 agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
 agent.cilrs.training.kwargs.features_weight=0.0 \
 agent.cilrs.training.kwargs.batch_size=42 \
+agent.cilrs.training.kwargs.num_workers=192 \
 cache_dir="$1"
 }
 
