@@ -12,7 +12,7 @@ import hydra
 def check_h5_maps(env_configs, obs_configs, carla_sh_path):
     pixels_per_meter = None
     for agent_id, obs_cfg in obs_configs.items():
-        for k,v in obs_cfg.items():
+        for k, v in obs_cfg.items():
             if 'birdview' in v['module']:
                 pixels_per_meter = float(v['pixels_per_meter'])
 
@@ -20,14 +20,15 @@ def check_h5_maps(env_configs, obs_configs, carla_sh_path):
         # agent does not require birdview map as observation
         return
 
-    save_dir = Path(hydra.utils.get_original_cwd()) / 'carla_gym/core/obs_manager/birdview/maps'
+    save_dir = Path(hydra.utils.get_original_cwd()) / \
+        'carla_gym/core/obs_manager/birdview/maps'
     txt_command = f'Please run map generation script from project root directory. \n' \
         f'\033[93m' \
         f'python -m carla_gym.utils.birdview_map ' \
         f'--save_dir {save_dir} --pixels_per_meter {pixels_per_meter:.2f} ' \
         f'--carla_sh_path {carla_sh_path}' \
         f'\033[0m'
-    
+
     # check if pixels_per_meter match
     for env_cfg in env_configs:
         carla_map = env_cfg['env_configs']['carla_map']
@@ -38,7 +39,8 @@ def check_h5_maps(env_configs, obs_configs, carla_sh_path):
             map_hf = h5py.File(hf_file_path, 'r')
             hf_pixels_per_meter = float(map_hf.attrs['pixels_per_meter'])
             map_hf.close()
-            pixels_per_meter_match = np.isclose(hf_pixels_per_meter, pixels_per_meter)
+            pixels_per_meter_match = np.isclose(
+                hf_pixels_per_meter, pixels_per_meter)
             txt_assert = f'pixel_per_meter mismatch between h5 file ({hf_pixels_per_meter}) '\
                 f'and obs_config ({pixels_per_meter}). '
         else:
@@ -58,7 +60,8 @@ def load_entry_point(name):
 def load_obs_configs(agent_configs_dict):
     obs_configs = {}
     for actor_id, cfg in agent_configs_dict.items():
-        obs_configs[actor_id] = json.load(open(cfg['path_to_conf_file'], 'r'))['obs_configs']
+        obs_configs[actor_id] = json.load(
+            open(cfg['path_to_conf_file'], 'r'))['obs_configs']
     return obs_configs
 
 
@@ -97,7 +100,39 @@ def parse_routes_file(routes_xml_filename):
                         yaw=float(waypoint.attrib['yaw']))
                     waypoint_list.append(carla.Transform(location, rotation))
 
-                route_descriptions_dict[route_id][actor_type+'s'][actor_id] = waypoint_list
+                route_descriptions_dict[route_id][actor_type +
+                                                  's'][actor_id] = waypoint_list
+
+    return route_descriptions_dict
+
+
+def parse_routes_weather_file(routes_xml_filename):
+    route_descriptions_dict = {}
+    tree = ET.parse(routes_xml_filename)
+
+    for (i, route) in enumerate(tree.iter("route")):
+
+        route_id = int(route.attrib['id'])
+        route_town = route.attrib['town']
+        route_weather = list(route.iter('weather'))[0].attrib
+
+        route_descriptions_dict[route_id] = {}
+        route_descriptions_dict[route_id]['town'] = route_town
+        route_descriptions_dict[route_id]['weather'] = route_weather
+
+        waypoint_list = []  # the list of waypoints that can be found on this route for this actor
+        for waypoint in route.iter('waypoint'):
+            location = carla.Location(
+                x=float(waypoint.attrib['x']),
+                y=float(waypoint.attrib['y']),
+                z=float(waypoint.attrib['z']))
+            rotation = carla.Rotation(
+                roll=float(waypoint.attrib['roll']),
+                pitch=float(waypoint.attrib['pitch']),
+                yaw=float(waypoint.attrib['yaw']))
+            waypoint_list.append(carla.Transform(location, rotation))
+
+        route_descriptions_dict[route_id]["waypoints"] = waypoint_list
 
     return route_descriptions_dict
 
