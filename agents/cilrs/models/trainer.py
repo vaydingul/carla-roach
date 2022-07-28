@@ -167,7 +167,7 @@ class Trainer():
 
     def _train(self, dataset):
         self.policy = self.policy.train()
-
+        th.autograd.set_detect_anomaly(True)
         t_data_read = time.time()
         for command, policy_input, supervision in dataset:
         

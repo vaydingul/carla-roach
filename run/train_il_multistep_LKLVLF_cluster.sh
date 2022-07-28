@@ -27,7 +27,7 @@ train_il () {
 python -u train_il.py reset_step=true \
 agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/387sua9u agent.cilrs.wb_ckpt_step=1 \
 wb_project="il_leaderboard_roach" wb_group="train_multi_step_control" 'wb_name="L_K+L_V+L_F(c) (cluster) cont"' \
-dagger_datasets=["/userfiles/vaydingul20/dataset/dataset/"] \
+dagger_datasets=["/userfiles/vaydingul20/dummy/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -83,7 +83,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/userfiles/vaydingul20/dataset/dataset/"
+CACHE_DIR="/userfiles/vaydingul20/dummy/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
