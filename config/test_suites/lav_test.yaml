@@ -1,3 +1,9 @@
 # @package _group_
-# train town / train weather
-- env_id: LAV
+# LAV benchmark
+- env_id: LAV-v0
+  env_configs:
+    carla_map: Town02
+
+- env_id: LAV-v0
+  env_configs:
+    carla_map: Town05

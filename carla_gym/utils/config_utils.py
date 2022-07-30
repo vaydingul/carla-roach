@@ -119,7 +119,8 @@ def parse_routes_weather_file(routes_xml_filename):
         route_descriptions_dict[route_id] = {}
         route_descriptions_dict[route_id]['town'] = route_town
         route_descriptions_dict[route_id]['weather'] = route_weather
-
+        route_descriptions_dict[route_id]["ego_vehicles"] = {}
+        
         waypoint_list = []  # the list of waypoints that can be found on this route for this actor
         for waypoint in route.iter('waypoint'):
             location = carla.Location(
@@ -132,7 +133,7 @@ def parse_routes_weather_file(routes_xml_filename):
                 yaw=float(waypoint.attrib['yaw']))
             waypoint_list.append(carla.Transform(location, rotation))
 
-        route_descriptions_dict[route_id]["waypoints"] = waypoint_list
+        route_descriptions_dict[route_id]["ego_vehicles"]["hero"] = waypoint_list
 
     return route_descriptions_dict
 
