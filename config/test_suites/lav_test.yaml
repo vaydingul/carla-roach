@@ -1,0 +1,9 @@
+# @package _group_
+# LAV benchmark
+- env_id: LAV-v0
+  env_configs:
+    carla_map: Town02
+
+- env_id: LAV-v0
+  env_configs:
+    carla_map: Town05
