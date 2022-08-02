@@ -144,7 +144,11 @@ def main(cfg: DictConfig):
     # loop through each route
     for task_idx in range(ckpt_task_idx, env.num_tasks):
         env.set_task_idx(task_idx)
-        run_name = f"{env.task['weather']}_{env.task['route_id']:02d}"
+        print(isinstance(env.task["weather"], dict))
+        if isinstance(env.task["weather"], dict) and "lav" in env.task['weather'].keys():
+            run_name = f"{env.task['weather']['id']}_{env.task['route_id']:02d}"
+        else:
+            run_name = f"{env.task['weather']}_{env.task['route_id']:02d}"
 
         list_render, ep_stat_dict, ep_event_dict, timestamp = run_single(
             run_name, env, agents_dict, agents_log_dir, cfg.log_video)
