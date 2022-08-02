@@ -84,23 +84,32 @@ class WeatherHandler(object):
         self._dynamic = False
 
     def reset(self, cfg_weather):
-        if hasattr(carla.WeatherParameters, cfg_weather):
-            self._world.set_weather(getattr(carla.WeatherParameters, cfg_weather))
-            self._dynamic = False
-        elif 'dynamic' in cfg_weather:
-            self._weather = np.random.choice(WEATHERS)
-            self._sun = Sun(self._weather.sun_azimuth_angle, self._weather.sun_altitude_angle)
-            self._storm = Storm(self._weather.precipitation)
-            self._dynamic = True
-            l = cfg_weather.split('_')
-            if len(l) == 2:
-                self._speed_factor = float(l[1])
+        if not isinstance(cfg_weather, dict):
+
+            if hasattr(carla.WeatherParameters, cfg_weather):
+                self._world.set_weather(getattr(carla.WeatherParameters, cfg_weather))
+                self._dynamic = False
+            elif 'dynamic' in cfg_weather:
+                self._weather = np.random.choice(WEATHERS)
+                self._sun = Sun(self._weather.sun_azimuth_angle, self._weather.sun_altitude_angle)
+                self._storm = Storm(self._weather.precipitation)
+                self._dynamic = True
+                l = cfg_weather.split('_')
+                if len(l) == 2:
+                    self._speed_factor = float(l[1])
+                else:
+                    self._speed_factor = 1.0
+                self.tick(0.1)
             else:
-                self._speed_factor = 1.0
-            self.tick(0.1)
+                self._world.set_weather('ClearNoon')
+                self._dynamic = False
+                
         else:
-            self._world.set_weather('ClearNoon')
-            self._dynamic = False
+            if 'lav' in cfg_weather.keys():
+                self._dynamic = False
+                self._lav = True
+                #self._world.set_weather(getattr(carla.WeatherParameters, cfg_weather["id"]))
+                self._world.set_weather(carla.WeatherParameters(**{k:float(v) for (k, v) in cfg_weather.items() if k != "id" and k != "lav"}))
 
     def tick(self, delta_seconds):
         if self._dynamic:
