@@ -49,8 +49,6 @@ class Trainer():
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
         
-        batch_size = 192
-        num_workers = 10
         # kwargs for dataloader
         self.batch_size = batch_size * self.num_gpus
 

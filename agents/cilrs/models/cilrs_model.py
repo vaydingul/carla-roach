@@ -183,7 +183,7 @@ class CoILICRA(nn.Module):
         'encoder' : FC(params = {
             'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
             'dropouts' : multi_step_dropouts + [0.0],
-            'end_layer' : nn.ReLU
+            'end_layer' : None
         }
         ),
         'policy_head_mu' : self.mu_branches,
