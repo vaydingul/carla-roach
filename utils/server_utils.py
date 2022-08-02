@@ -9,9 +9,9 @@ log = logging.getLogger(__name__)
 
 
 def kill_carla():
-    kill_process = subprocess.Popen('killall -9 -r CarlaUE4-Linux-Shipping', shell=True)
+    kill_process = subprocess.Popen('killall -9 -r CarlaUE4', shell=True)
     kill_process.wait()
-    time.sleep(1)
+    time.sleep(2)
     log.info("Kill Carla Servers!")
 
 
@@ -40,7 +40,7 @@ class CarlaServerManager():
     def start(self):
         kill_carla()
         for cfg in self.env_configs:
-            cmd = f'CUDA_VISIBLE_DEVICES={cfg["gpu"]} bash {self._carla_sh_str} ' \
+            cmd = f'CUDA_VISIBLE_DEVICES={cfg["gpu"]}; bash {self._carla_sh_str} ' \
                 f'-fps=10 -quality-level=Epic -opengl -carla-rpc-port={cfg["port"]}'
             #     f'-fps=10 -carla-server -opengl -carla-rpc-port={cfg["port"]}'
             log.info(cmd)
