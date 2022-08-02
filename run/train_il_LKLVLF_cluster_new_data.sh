@@ -26,7 +26,7 @@ train_il () {
 
 python -u train_il.py reset_step=true \
 wb_project="il_leaderboard_roach" wb_group="train_from_scratch" 'wb_name="L_K+L_V+L_F(c) new data"' \
-dagger_datasets=["/userfiles/vaydingul20/new_dataset_carla_9_10_1/"] \
+dagger_datasets=["/scratch/users/vaydingul20/new_dataset_carla_9_10_1/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -82,7 +82,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/userfiles/vaydingul20/new_dataset_carla_9_10_1/"
+CACHE_DIR="/scratch/users/vaydingul20/new_dataset_carla_9_10_1/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
