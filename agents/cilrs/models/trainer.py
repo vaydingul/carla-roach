@@ -47,8 +47,7 @@ class Trainer():
         self.num_gpus = th.cuda.device_count()
         log.info(f'number of gpus: {self.num_gpus}')
 
-        batch_size = 192
-        num_workers = 8
+
         # kwargs for dataloader
         self.batch_size = batch_size * self.num_gpus
 

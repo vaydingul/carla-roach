@@ -8,7 +8,7 @@ import os
 
 # Fetch the h5 files
 dataset_path = '/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1/expert/'
-h5_files = [f for f in os.listdir(dataset_path) if f.endswith('.h5')][0:3]
+h5_files = [f for f in os.listdir(dataset_path) if f.endswith('.h5')]
 while True:
 
     f = os.path.join(dataset_path, np.random.choice(h5_files))
@@ -32,5 +32,5 @@ while True:
 
 
     ani = animation.FuncAnimation(
-        fig, animate, np.arange(1, 100), interval=1, blit=False)
+        fig, animate, np.arange(1, 1000), interval=1, blit=False)
     plt.show()
