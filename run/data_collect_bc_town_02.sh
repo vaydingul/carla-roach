@@ -7,7 +7,7 @@ data_collect () {
   wb_group=bc_data_carla_0_9_10_1 \
   test_suites=lb_data_town_02 \
   n_episodes=20 \
-  dataset_root=/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1_town_02 \
+  dataset_root=/home/fguney/VOLKAN/new_dataset_carla_9_10_1_town_02 \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
