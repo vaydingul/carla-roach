@@ -241,33 +241,26 @@ class CoILICRA(nn.Module):
         with th.no_grad():
             im_tensor = im.unsqueeze(0).to(self.device)
             state_tensor = state.unsqueeze(0).to(self.device)
-            command_tensor = command.to(self.device)
-            command_tensor.clamp_(0, self.number_of_branches-1)
+            #command_tensor = command.to(self.device)
+            #command_tensor.clamp_(0, self.number_of_branches-1)
             outputs = self.forward(im_tensor, state_tensor)
             if self.action_distribution == 'beta' or self.action_distribution=='beta_shared':
-                action_branches = self._get_action_beta(outputs['mu_branches'], outputs['sigma_branches'])
-                action = self.extract_branch(action_branches, command_tensor)
+                action = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
+                #action = self.extract_branch(action)
             else:
-                action = self.extract_branch(outputs['action_branches'], command_tensor)
+                action = self.extract_branch(outputs['action_branches'])
         return action[0].cpu().numpy(), outputs['pred_speed'].item()
 
     @staticmethod
-    def extract_branch(action_branches, branch_number):
+    def extract_branch(action):
         '''
         action_branches: list, len=num_branches, (batch_size, action_dim)
         '''
-        output_vec = th.stack(action_branches)
-        # output_vec: (num_branches, batch_size, action_dim)
+        
 
-        if len(branch_number) > 1:
-            branch_number = th.squeeze(branch_number.type(th.LongTensor))
-        else:
-            branch_number = branch_number.type(th.LongTensor)
-        # branch_number: (batch_size,)
-
-        branch_number = th.stack([branch_number, th.LongTensor(range(0, len(branch_number)))])
-
-        return output_vec[branch_number[0], branch_number[1], :]
+      
+        
+        return action[:, 0], action[:, 1]
 
     @property
     def init_kwargs(self):
@@ -291,29 +284,28 @@ class CoILICRA(nn.Module):
         return model
 
     @staticmethod
-    def _get_action_beta(alpha_branches, beta_branches):
+    def _get_action_beta(alpha, beta):
         action_branches = []
-        for alpha, beta in zip(alpha_branches, beta_branches):
-            x = th.zeros_like(alpha)
-            x[:, 1] += 0.5
-            mask1 = (alpha > 1) & (beta > 1)
-            x[mask1] = (alpha[mask1]-1)/(alpha[mask1]+beta[mask1]-2)
+        
+        x = th.zeros_like(alpha)
+        x[:, 1] += 0.5
+        mask1 = (alpha > 1) & (beta > 1)
+        x[mask1] = (alpha[mask1]-1)/(alpha[mask1]+beta[mask1]-2)
 
-            mask2 = (alpha <= 1) & (beta > 1)
-            x[mask2] = 0.0
+        mask2 = (alpha <= 1) & (beta > 1)
+        x[mask2] = 0.0
 
-            mask3 = (alpha > 1) & (beta <= 1)
-            x[mask3] = 1.0
+        mask3 = (alpha > 1) & (beta <= 1)
+        x[mask3] = 1.0
 
-            # mean
-            mask4 = (alpha <= 1) & (beta <= 1)
-            x[mask4] = alpha[mask4]/(alpha[mask4]+beta[mask4])
+        # mean
+        mask4 = (alpha <= 1) & (beta <= 1)
+        x[mask4] = alpha[mask4]/(alpha[mask4]+beta[mask4])
 
-            x = x * 2 - 1
+        x = x * 2 - 1
 
-            action_branches.append(x)
-
-        return action_branches
+        action = x
+        return action
 
     @staticmethod
     def _load_state_dict(il_net, rl_state_dict, key_word):

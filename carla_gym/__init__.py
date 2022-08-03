@@ -71,6 +71,11 @@ _AVAILABLE_ENVS = {
         'entry_point': 'carla_gym.envs:LeaderboardEnv',
         'description': 'leaderboard route with no-that-dense backtround traffic',
         'kwargs': {}
+    },
+    'LAV-v0': {
+        'entry_point': 'carla_gym.envs:LAVEnv',
+        'description': 'Learning From All Vehicles environment for IL benchmarking',
+        'kwargs': {}
     }
 }
 
