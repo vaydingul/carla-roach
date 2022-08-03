@@ -55,9 +55,9 @@
    wb_project=iccv21-roach-benchmark \
    agent=$agent actors.hero.agent=$agent \
    agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/2i9ro07x \
-   'wb_group="L_K + L_V scratch (improved) (seed:2)"' \
-   'wb_notes="Benchmark L_K + L_V on Leaderboard New Weather/ New Town."' \
-   test_suites=lb_test_nn_new \
+   'wb_group="L_K + L_V + L_F(c) LAV"' \
+   'wb_notes="Benchmark L_K + L_V + L_F(c) on LAV."' \
+   test_suites=lav_test \
    seed=2022 \
    +wb_sub_group=leaderboard_dense-2021 \
    no_rendering=false \
