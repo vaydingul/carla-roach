@@ -21,10 +21,17 @@ K[1, 1] = FOCAL
 K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
-STEP = 4
+OFFSET = 20
+STEP = 100
+STRIDE = 4
+
+THICKNESS_MAX = 5
+THICKNESS_MIN = 0.5
+
 EARTH_RADIUS_EQUA = 6378137.0
 
 def gnss_2_world(gps):
+
     lat, lon, z = gps
     lat = float(lat)
     lon = float(lon)
@@ -66,16 +73,14 @@ def world_2_pixel(world_point, world_2_camera):
 
     # Or, in this case, is the same as swapping:
     # (x, y ,z) -> (y, -z, x)
-    # point_in_camera_coords = np.array([
-    #             sensor_points[1],
-    #             sensor_points[2] * -1,
-    #             sensor_points[0]])
-    point_in_camera_coords = sensor_points[:3]
-    print(point_in_camera_coords)
-    #point_in_camera_coords = np.array([sensor_points[2] * -1, sensor_points[0], sensor_points[1]]) 
-    # point_in_camera_coords = np.array([0, 0, 1])
+    point_in_camera_coords = np.array([
+                sensor_points[1],
+                sensor_points[2] * -1,
+                sensor_points[0]])
+
+
+    
     # Finally we can use our K matrix to do the actual 3D -> 2D.
-    #point_in_camera_coords[2] = 0
     points_2d = K @ point_in_camera_coords
 
 
@@ -83,7 +88,7 @@ def world_2_pixel(world_point, world_2_camera):
     points_2d = np.array([
         points_2d[0] / points_2d[2],
         points_2d[1] / points_2d[2],
-        -points_2d[2]])
+        points_2d[2]])
 
     # At this point, points_2d[0, :] contains all the x and points_2d[1, :]
     # contains all the y values of our points. In order to properly
@@ -99,54 +104,58 @@ def world_2_pixel(world_point, world_2_camera):
     return pixel_points
 
 
+def main(dataset_path, episode):
+
+   
+    h5_file = os.path.join(dataset_path, f'{episode:04}.h5')
+    f = h5py.File(h5_file, 'r')
 
 
-# Fetch the h5 files
-dataset_path = '/home/vaydingul20/Documents/Codes/ONE_EPISODE/expert/'
-h5_files = [f for f in os.listdir(dataset_path) if f.endswith('.h5')]
-f = os.path.join(dataset_path, np.random.choice(h5_files))
-file_name = f.split('/')[-1]
-f = h5py.File(f, 'r')
+    i = 0
+    while i < 3000:
 
 
-i = 0
-while True:
+        # Read the data
+        img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
+        world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
+
+        camera_location = camera_2_world[:3, 3]
+        ego_point = f[f'step_{int(i)}/obs/gnss/gnss'][()]
+
+        waypoints = []
+
+        for k in range(i + OFFSET, i + OFFSET + STEP, STRIDE):
+            world_point = f[f'step_{int(k)}/obs/gnss/gnss'][()]
+            
+            pixel_point = world_2_pixel(world_point, world_2_camera)
+            waypoints.append(pixel_point)
+
+        thickness = np.linspace(THICKNESS_MIN, THICKNESS_MAX, len(waypoints))[::-1]
+
+        for (ix, waypoint) in enumerate(waypoints):
+            
+            if waypoint.shape[0] > 0:
+                waypoint = waypoint.squeeze()
+                img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(thickness[ix]), (0, 0, 255), -1)
+                
+        cv2.imshow('Waypoint Animation', img)
+
+        if cv2.waitKey(1) == ord('q'):
+            
+            # press q to terminate the loop
+            cv2.destroyAllWindows()
+            break
+
+        time.sleep(0.1)
+        i += 1
 
 
-    # Read the data
-    img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
-    camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
-    world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
+if __name__ == '__main__':
 
-    camera_location = camera_2_world[:3, 3]
-
-
-    waypoints = []
-
-    for k in range(i + 1, i + 1 + STEP):
-        world_point = f[f'step_{int(k)}/obs/gnss/gnss'][()]
-        # print 3(gnss_2_world(world_point) + camera_2_world[:3, :3] @ np.array([-1.5, 0.0, 2.0]))
-        # print(camera_location)
-        pixel_point = world_2_pixel(world_point, world_2_camera)
-        waypoints.append(pixel_point)
-
-    for waypoint in waypoints:
-    
-        if waypoint.shape[0] > 0:
-            waypoint = waypoint.squeeze()
-            #print(waypoint)
-            img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), 5, (0, 0, 255), -1)
-           
-
-    cv2.imshow('animation', img)
- 
-    if cv2.waitKey(1) == ord('q'):
-       
-        # press q to terminate the loop
-        cv2.destroyAllWindows()
-        break
-
-     
-    i += 1
-    
-
+     # Fetch the h5 files
+    dataset_path = '/home/vaydingul20/Documents/Codes/TEN_EPISODE/expert/'
+    episode = 1
+    main(dataset_path, episode)
