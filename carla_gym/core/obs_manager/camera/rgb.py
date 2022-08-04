@@ -81,13 +81,15 @@ class ObsManager(ObsManagerBase):
         assert self._image_queue.qsize() <= 1
 
         try: 
-            frame, data = self._image_queue.get(True, self._queue_timeout)
+            frame, data, camera_2_world, world_2_camera = self._image_queue.get(True, self._queue_timeout)
             assert snap_shot.frame == frame
         except Empty:
             raise Exception('RGB sensor took too long!')
 
         obs = {'frame': frame,
-               'data': data}
+               'data': data,
+               'camera_2_world' : camera_2_world,
+               'world_2_camera': world_2_camera}
 
         return obs
 
@@ -111,10 +113,12 @@ class ObsManager(ObsManagerBase):
         np_img = np.reshape(np_img, (carla_image.height, carla_image.width, 4))
         np_img = np_img[:, :, :3]
         np_img = np_img[:, :, ::-1]
-
+        
+        camera_2_world = carla_image.transform.get_matrix()
+        world_2_camera = np.array(carla_image.transform.get_inverse_matrix())
         # np_img = np.moveaxis(np_img, -1, 0)
         # image = cv2.resize(image, (self._res_x, self._res_y), interpolation=cv2.INTER_AREA)
         # image = np.float32
         # image = (image.astype(np.float32) - 128) / 128
 
-        self._image_queue.put((carla_image.frame, np_img))
+        self._image_queue.put((carla_image.frame, np_img, camera_2_world, world_2_camera))

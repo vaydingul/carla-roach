@@ -25,8 +25,8 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/t0ozrxa5 agent.cilrs.wb_ckpt_step=24 \
-wb_project="il_leaderboard_roach" wb_group="train_from_scratch" 'wb_name="L_K+L_V+L_F(c) new data contd"' \
+agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/3i8h2jbd agent.cilrs.wb_ckpt_step=49 \
+wb_project="il_leaderboard_roach" wb_group="train_from_scratch" 'wb_name="L_K+L_V+L_F(c) new data contd - 2"' \
 dagger_datasets=["/scratch/users/vaydingul20/new_dataset_carla_9_10_1/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
