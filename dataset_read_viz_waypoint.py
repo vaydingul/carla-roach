@@ -16,77 +16,13 @@ HEIGHTH = 256
 FOCAL = WIDTH / (2.0 * np.tan(FOV * np.pi / 360.0))
 
 K = np.identity(3)
-K[0, 0] = K[1, 1] = FOCAL
+K[0, 0] = FOCAL
+K[1, 1] = FOCAL
 K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
 STEP = 4
 EARTH_RADIUS_EQUA = 6378137.0
-
-
-a = 6378137
-b = 6356752.3142
-f = (a - b) / a
-e_sq = f * (2 - f)
-
-
-def geodetic_to_ecef(lat, lon, h):
-    # (lat, lon) in WSG-84 degrees
-    # h in meters
-    lamb = math.radians(lat)
-    phi = math.radians(lon)
-    s = math.sin(lamb)
-    N = a / math.sqrt(1 - e_sq * s * s)
-
-    sin_lambda = math.sin(lamb)
-    cos_lambda = math.cos(lamb)
-    sin_phi = math.sin(phi)
-    cos_phi = math.cos(phi)
-
-    x = (h + N) * cos_lambda * cos_phi
-    y = (h + N) * cos_lambda * sin_phi
-    z = (h + (1 - e_sq) * N) * sin_lambda
-
-    return x, y, z
-
-
-def ecef_to_enu(x, y, z, lat0, lon0, h0):
-    lamb = math.radians(lat0)
-    phi = math.radians(lon0)
-    s = math.sin(lamb)
-    N = a / math.sqrt(1 - e_sq * s * s)
-
-    sin_lambda = math.sin(lamb)
-    cos_lambda = math.cos(lamb)
-    sin_phi = math.sin(phi)
-    cos_phi = math.cos(phi)
-
-    x0 = (h0 + N) * cos_lambda * cos_phi
-    y0 = (h0 + N) * cos_lambda * sin_phi
-    z0 = (h0 + (1 - e_sq) * N) * sin_lambda
-
-    xd = x - x0
-    yd = y - y0
-    zd = z - z0
-
-    xEast = -sin_phi * xd + cos_phi * yd
-    yNorth = -cos_phi * sin_lambda * xd - sin_lambda * sin_phi * yd + cos_lambda * zd
-    zUp = cos_lambda * cos_phi * xd + cos_lambda * sin_phi * yd + sin_lambda * zd
-
-    return xEast, yNorth, zUp
-
-
-def geodetic_to_enu(lat, lon, h, lat_ref, lon_ref, h_ref):
-    x, y, z = geodetic_to_ecef(lat, lon, h)
-
-    return ecef_to_enu(x, y, z, lat_ref, lon_ref, h_ref)
-
-
-def gnss_to_carla_coord(lat, lon, alt):
-    x, y, z = geodetic_to_ecef(lat, lon, alt)
-    carla_x, carla_y, carla_z = ecef_to_enu(x, y, z, 0.0, 0.0, 0.0)
-    return carla_x, -carla_y, carla_z
-
 
 def gnss_2_world(gps):
     lat, lon, z = gps
@@ -107,7 +43,7 @@ def world_2_pixel(world_point, world_2_camera):
     Convert world coordinates to pixel coordinates.
     """
     world_point_ = np.ones((4, ))
-    world_point_[:3] = gnss_to_carla_coord(*world_point)
+    world_point_[:3] = gnss_2_world(world_point)
 
     # Transform the points from world space to camera space.
     sensor_points = np.dot(world_2_camera, world_point_)
@@ -130,11 +66,11 @@ def world_2_pixel(world_point, world_2_camera):
 
     # Or, in this case, is the same as swapping:
     # (x, y ,z) -> (y, -z, x)
-    point_in_camera_coords = np.array([
-                sensor_points[1],
-                sensor_points[2] * -1,
-                sensor_points[0]])
-
+    # point_in_camera_coords = np.array([
+    #             sensor_points[1],
+    #             sensor_points[2] * -1,
+    #             sensor_points[0]])
+    point_in_camera_coords = sensor_points[:3]
     # Finally we can use our K matrix to do the actual 3D -> 2D.
     points_2d = np.dot(K, point_in_camera_coords)
 
@@ -174,13 +110,19 @@ while True:
 
 
     # Read the data
-    img = f['step_%d/obs/central_rgb/data' % i][()]
-    world_2_camera = f['step_%d/obs/central_rgb/world_2_camera' % i][()]
+    img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
+    camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
+    world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
+
+    camera_location = camera_2_world[:3, 3]
+
 
     waypoints = []
 
-    for k in range(i + 1, i + 1 + STEP):
-        world_point = f['step_%d/obs/gnss/gnss' % k][()]
+    for k in range(i, i + 1 + STEP):
+        world_point = f[f'step_{int(i)}/obs/gnss/gnss'][()]
+        # print(gnss_2_world(world_point) + camera_2_world[:3, :3] @ np.array([-1.5, 0.0, 2.0]))
+        # print(camera_location)
         pixel_point = world_2_pixel(world_point, world_2_camera)
         waypoints.append(pixel_point)
 
@@ -189,7 +131,7 @@ while True:
         if waypoint.shape[0] > 0:
             waypoint = waypoint.squeeze()
             print(waypoint)
-            img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), 1, (0, 0, 255), -1)
+            img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), 5, (0, 0, 255), -1)
            
 
     cv2.imshow('animation', img)
