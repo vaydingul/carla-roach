@@ -71,15 +71,19 @@ def world_2_pixel(world_point, world_2_camera):
     #             sensor_points[2] * -1,
     #             sensor_points[0]])
     point_in_camera_coords = sensor_points[:3]
+    print(point_in_camera_coords)
+    #point_in_camera_coords = np.array([sensor_points[2] * -1, sensor_points[0], sensor_points[1]]) 
+    # point_in_camera_coords = np.array([0, 0, 1])
     # Finally we can use our K matrix to do the actual 3D -> 2D.
-    points_2d = np.dot(K, point_in_camera_coords)
+    #point_in_camera_coords[2] = 0
+    points_2d = K @ point_in_camera_coords
 
 
     # Remember to normalize the x, y values by the 3rd value.
     points_2d = np.array([
         points_2d[0] / points_2d[2],
         points_2d[1] / points_2d[2],
-        points_2d[2]])
+        -points_2d[2]])
 
     # At this point, points_2d[0, :] contains all the x and points_2d[1, :]
     # contains all the y values of our points. In order to properly
@@ -119,9 +123,9 @@ while True:
 
     waypoints = []
 
-    for k in range(i, i + 1 + STEP):
-        world_point = f[f'step_{int(i)}/obs/gnss/gnss'][()]
-        # print(gnss_2_world(world_point) + camera_2_world[:3, :3] @ np.array([-1.5, 0.0, 2.0]))
+    for k in range(i + 1, i + 1 + STEP):
+        world_point = f[f'step_{int(k)}/obs/gnss/gnss'][()]
+        # print 3(gnss_2_world(world_point) + camera_2_world[:3, :3] @ np.array([-1.5, 0.0, 2.0]))
         # print(camera_location)
         pixel_point = world_2_pixel(world_point, world_2_camera)
         waypoints.append(pixel_point)
@@ -130,7 +134,7 @@ while True:
     
         if waypoint.shape[0] > 0:
             waypoint = waypoint.squeeze()
-            print(waypoint)
+            #print(waypoint)
             img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), 5, (0, 0, 255), -1)
            
 
@@ -142,7 +146,6 @@ while True:
         cv2.destroyAllWindows()
         break
 
-    time.sleep(0.01)
      
     i += 1
     
