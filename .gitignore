@@ -8,6 +8,7 @@ outputs/
 wandb/
 *.pyc
 *.h5
+*.mp4
 .vscode/settings.json
 carla_gym/envs/__pycache__/__init__.cpython-37.pyc
 environment2.yml

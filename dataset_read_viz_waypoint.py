@@ -8,6 +8,7 @@ import os
 import carla
 import math
 import cv2
+from cv2 import VideoWriter, VideoWriter_fourcc
 import time
 
 FOV = 100
@@ -15,18 +16,24 @@ WIDTH = 900
 HEIGHTH = 256
 FOCAL = WIDTH / (2.0 * np.tan(FOV * np.pi / 360.0))
 
+FPS = 20
+
 K = np.identity(3)
 K[0, 0] = FOCAL
 K[1, 1] = FOCAL
 K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
-OFFSET = 20
-STEP = 100
-STRIDE = 4
+OFFSET = 10
+STEP = 4
+STRIDE = 1
 
 THICKNESS_MAX = 5
-THICKNESS_MIN = 0.5
+THICKNESS_MIN = 5
+
+COLOR_MAX = 255
+COLOR_MIN = 50
+
 
 EARTH_RADIUS_EQUA = 6378137.0
 
@@ -110,13 +117,18 @@ def main(dataset_path, episode):
     h5_file = os.path.join(dataset_path, f'{episode:04}.h5')
     f = h5py.File(h5_file, 'r')
 
+    fourcc = VideoWriter_fourcc(*'mp4v')
+    video = VideoWriter('./wp.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
     while i < 3000:
 
 
         # Read the data
-        img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
+        try:
+            img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
+        except KeyError:
+            break
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
@@ -127,35 +139,41 @@ def main(dataset_path, episode):
 
         waypoints = []
 
-        for k in range(i + OFFSET, i + OFFSET + STEP, STRIDE):
-            world_point = f[f'step_{int(k)}/obs/gnss/gnss'][()]
-            
+        for k in range(i + OFFSET, i + OFFSET + STEP * STRIDE, STRIDE):
+
+            try:
+                world_point = f[f'step_{int(k)}/obs/gnss/gnss'][()]
+            except KeyError:
+                break
             pixel_point = world_2_pixel(world_point, world_2_camera)
             waypoints.append(pixel_point)
 
         thickness = np.linspace(THICKNESS_MIN, THICKNESS_MAX, len(waypoints))[::-1]
+        color = np.linspace(COLOR_MIN, COLOR_MAX, len(waypoints))[::-1]
 
         for (ix, waypoint) in enumerate(waypoints):
             
             if waypoint.shape[0] > 0:
                 waypoint = waypoint.squeeze()
-                img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(thickness[ix]), (0, 0, 255), -1)
+                img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(thickness[ix]), (0, 0, int(color[ix])), -1)
                 
-        cv2.imshow('Waypoint Animation', img)
+        #cv2.imshow('Waypoint Animation', img)
 
-        if cv2.waitKey(1) == ord('q'):
-            
-            # press q to terminate the loop
-            cv2.destroyAllWindows()
-            break
+        #if cv2.waitKey(1) == ord('q'):
+        #    
+        #    # press q to terminate the loop
+        #    cv2.destroyAllWindows()
+        #    break
+        
+        video.write(cv2.resize(img, (WIDTH//2, HEIGHTH//2)))
 
-        time.sleep(0.1)
         i += 1
 
+    video.release()
 
 if __name__ == '__main__':
 
      # Fetch the h5 files
     dataset_path = '/home/vaydingul20/Documents/Codes/TEN_EPISODE/expert/'
-    episode = 1
+    episode = 5
     main(dataset_path, episode)
