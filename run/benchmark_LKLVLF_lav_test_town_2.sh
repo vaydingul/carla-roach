@@ -54,8 +54,8 @@
    python -u benchmark.py resume=true log_video=true \
    wb_project=iccv21-roach-benchmark \
    agent=$agent actors.hero.agent=$agent \
-   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/2or2hz57 \
-   'wb_group="L_K + L_V + L_F(c) LAV Town02 Overfit"' \
+   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/53r2z6v7 \
+   'wb_group="L_K + L_V + L_F(c) LAV Town02 Overfit (improved)"' \
    'wb_notes="Benchmark L_K + L_V + L_F(c) trained and overfitted only with Town02, on LAV."' \
    test_suites=lav_test \
    seed=2022 \
