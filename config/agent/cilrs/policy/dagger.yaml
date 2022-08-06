@@ -4,6 +4,9 @@ kwargs:
   freeze_value_head: false
   freeze_action_head: false
   resnet_pretrain: true
+  use_multi_step_control: true
+  use_multi_step_waypoint: true
+  initial_hidden_zeros: true
   perception_output_neurons: 1000
   measurements_neurons: [128, 128]
   measurements_dropouts: [0.0, 0.0]

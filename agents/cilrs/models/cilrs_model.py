@@ -8,7 +8,7 @@ from .networks.branching import Branching
 from .networks.fc import FC
 from .networks.join import Join
 from .networks import resnet
-from .networks.multistep import MultiStep
+from .networks.multistep import MultiStepControl, MultiStepWaypoint
 
 
 log = logging.getLogger(__name__)
@@ -20,6 +20,9 @@ class CoILICRA(nn.Module):
                  value_as_supervision, action_distribution, dim_features_supervision, rl_ckpt=None,
                  freeze_value_head=False, freeze_action_head=False,
                  resnet_pretrain=True,
+                 use_multi_step_control=True,
+                 use_multi_step_waypoint=True,
+                 initial_hidden_zeros=True,
                  perception_output_neurons=512,
                  measurements_neurons=[128, 128],
                  measurements_dropouts=[0.0, 0.0],
@@ -173,24 +176,53 @@ class CoILICRA(nn.Module):
                                                    'end_layer': end_layer_action}))
             self.branches = Branching(branch_fc_vector)
 
+        if use_multi_step_waypoint:
+
+            dim_out = 3 # Number of dimensions in a cartesian coordinate (x, y, z)
+            waypoint_branch_vector = []
+            for i in range(number_of_branches):
+                waypoint_branch_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
+                                                   'dropouts': branches_dropouts + [0.0],
+                                                   'end_layer': end_layer_action}))
+            self.waypoint_branches = Branching(waypoint_branch_vector)
+
         # Multi-step action prediction
         self.number_of_steps = number_of_steps
 
-        self.multi_step = MultiStep(params={
-        'recurrent_cell': nn.GRUCell,
-        'input_size' : 4 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
-        'hidden_size' : join_neurons[-1],
-        'encoder' : FC(params = {
-            'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
-            'dropouts' : multi_step_dropouts + [0.0],
-            'end_layer' : None
-        }
-        ),
-        'policy_head_mu' : self.mu_branches,
-        'policy_head_sigma' : self.sigma_branches,
-        'number_of_steps' : self.number_of_steps
-        }
-        )
+        if use_multi_step_control:
+
+            self.multi_step_control = MultiStepControl(params={
+            'recurrent_cell': nn.GRUCell,
+            'input_size' : 4 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
+            'hidden_size' : join_neurons[-1],
+            'encoder' : FC(params = {
+                'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
+                'dropouts' : multi_step_dropouts + [0.0],
+                'end_layer' : None
+            }
+            ),
+            'policy_head_mu' : self.mu_branches,
+            'policy_head_sigma' : self.sigma_branches,
+            'number_of_steps' : self.number_of_steps
+            }
+            )
+
+        if use_multi_step_waypoint:
+
+            self.multi_step_waypoint = MultiStepWaypoint(params={
+            'recurrent_cell': nn.GRUCell,
+            'input_size' : 4 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
+            'hidden_size' : join_neurons[-1],
+            'encoder' : FC(params = {
+                'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
+                'dropouts' : multi_step_dropouts + [0.0],
+                'end_layer' : None
+            }
+            ),
+            'policy_head_waypoint' : self.waypoint_branches,
+            'number_of_steps' : self.number_of_steps
+            }
+            )
 
         # init
         for m in self.modules():
