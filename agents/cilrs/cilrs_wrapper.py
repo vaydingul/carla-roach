@@ -107,7 +107,7 @@ class CilrsWrapper():
         steer = np.clip(steer, -1, 1)
         brake = np.clip(brake, 0, 1)
 
-        log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
+        #log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
         
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
         return control
