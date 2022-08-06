@@ -54,8 +54,8 @@
    python -u benchmark.py resume=true log_video=true \
    wb_project=iccv21-roach-benchmark \
    agent=$agent actors.hero.agent=$agent \
-   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/3i8h2jbd \
-   'wb_group="L_K + L_V + L_F(c) (New Data) (improved) LAV "' \
+   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/eg0rfx3r \
+   'wb_group="L_K + L_V + L_F(c) (New Data) (improved - 2) LAV "' \
    'wb_notes="Benchmark L_K + L_V + L_F(c) trained with new data on LAV."' \
    test_suites=lav_test \
    seed=2022 \
