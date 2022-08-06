@@ -99,7 +99,7 @@ class BranchedLoss():
         return action_loss * self.action_loss_weight ,\
              speed_loss * self.speed_weight,\
              value_loss * self.value_weight,\
-             feature_loss * self.features_weight
+             feature_loss * self.features_weight * self.action_loss_weight
 
     @staticmethod
     def _get_branch_masks(commands, n_branches, n_actions):

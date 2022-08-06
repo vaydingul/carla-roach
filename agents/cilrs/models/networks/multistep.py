@@ -63,7 +63,7 @@ class MultiStep(nn.Module):
 
 		for _ in range(self.number_of_steps):
 			
-			x_in = torch.cat([mu, sigma, h], dim = 1)
+			x_in = torch.cat([mu, sigma, j], dim = 1)
 
 			h = self.recurrent_cell(x_in, h)
 
