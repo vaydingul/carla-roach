@@ -5,9 +5,9 @@ data_collect () {
   python -u data_collect.py resume=true log_video=false save_to_wandb=false \
   wb_project=il_leaderboard_roach \
   wb_group=bc_data_carla_0_9_10_1 \
-  test_suites=lb_data \
-  n_episodes=12 \
-  dataset_root=/home/vaydingul20/Documents/Codes/TEN_EPISODE \
+  test_suites=lb_data_town_02 \
+  n_episodes=5 \
+  dataset_root=/home/vaydingul20/Documents/Codes/FIVE_EPISODE \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
