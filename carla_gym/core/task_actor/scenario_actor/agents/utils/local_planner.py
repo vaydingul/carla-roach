@@ -62,6 +62,7 @@ class LocalPlanner(object):
         steer = self._turn_pid.step(theta)
 
         # throttle
+        brake = 0.0
         target_speed = self._target_speed
         if target_command not in [3, 4]:
             target_speed *= 0.75
@@ -69,7 +70,6 @@ class LocalPlanner(object):
         throttle = self._speed_pid.step(delta)
 
         # brake
-        brake = 0.0
 
         # clip
         steer = np.clip(steer, -1.0, 1.0)

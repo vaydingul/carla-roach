@@ -256,7 +256,8 @@ class CoILICRA(nn.Module):
 
         
         
-        pred_mu, pred_sigma, pred_j = self.multi_step(j)
+        pred_mu, pred_sigma, pred_j = self.multi_step_control(j)
+        pred_waypoint = self.multi_step_waypoint(j)
 
         if self.action_distribution is None:
             #outputs['action_branches'] = self.branches(j)
@@ -266,21 +267,44 @@ class CoILICRA(nn.Module):
             outputs['pred_sigma'] = pred_sigma
         if self.dim_features_supervision > 0:
             outputs['pred_features'] = pred_j
+        
+        outputs["pred_waypoint"] = pred_waypoint
 
         return outputs
 
     def forward_branch(self, command, im, state):
+
         with th.no_grad():
+            
+            log.info(f"Image Size: {im.shape}")
+            log.info(f"State Size: {state.shape}")
+
             im_tensor = im.unsqueeze(0).to(self.device)
             state_tensor = state.unsqueeze(0).to(self.device)
-            #command_tensor = command.to(self.device)
-            #command_tensor.clamp_(0, self.number_of_branches-1)
+
+            log.info(f"Image Size as Tensor: {im_tensor.shape}")
+            log.info(f"State Size as Tensor: {state_tensor.shape}")
+
             outputs = self.forward(im_tensor, state_tensor)
+            log.info(f"Outputs Keys: {outputs.keys()}")
+
+
             if self.action_distribution == 'beta' or self.action_distribution=='beta_shared':
+                
+
+                log.info(f"Predicted Mu Shape: {outputs['pred_mu'].shape}")
+                log.info(f"Predicted Sigma Shape: {outputs['pred_sigma'].shape}")
+
                 action = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
+                
+                log.info(f"Action Shape: {action.shape}")
+                
                 #action = self.extract_branch(action)
+
             else:
+
                 action = self.extract_branch(outputs['action_branches'])
+        
         return action[0].cpu().numpy(), outputs['pred_speed'].item()
 
     @staticmethod
@@ -288,10 +312,7 @@ class CoILICRA(nn.Module):
         '''
         action_branches: list, len=num_branches, (batch_size, action_dim)
         '''
-        
 
-      
-        
         return action[:, 0], action[:, 1]
 
     @property
