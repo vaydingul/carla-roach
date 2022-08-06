@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import carla
 import cv2
@@ -5,6 +6,8 @@ import carla_gym.utils.transforms as trans_utils
 import carla_gym.core.task_actor.common.navigation.route_manipulation as gps_util
 from torchvision import transforms as T
 import torch as th
+
+log = logging.getLogger(__name__)
 
 COLOR_BLACK = (0, 0, 0)
 COLOR_WHITE = (255, 255, 255)
@@ -103,6 +106,9 @@ class CilrsWrapper():
         throttle = np.clip(throttle, 0, 1)
         steer = np.clip(steer, -1, 1)
         brake = np.clip(brake, 0, 1)
+
+        log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
+        
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
         return control
 

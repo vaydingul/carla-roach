@@ -239,16 +239,32 @@ class CoILICRA(nn.Module):
 
     def forward_branch(self, command, im, state):
         with th.no_grad():
+
+            log.info(f"Image Size: {im.shape}")
+            log.info(f"State Size: {state.shape}")
+            
             im_tensor = im.unsqueeze(0).to(self.device)
             state_tensor = state.unsqueeze(0).to(self.device)
-            #command_tensor = command.to(self.device)
-            #command_tensor.clamp_(0, self.number_of_branches-1)
+            
+            log.info(f"Image Size as Tensor: {im_tensor.shape}")
+            log.info(f"State Size as Tensor: {state_tensor.shape}")
+
             outputs = self.forward(im_tensor, state_tensor)
+            
             if self.action_distribution == 'beta' or self.action_distribution=='beta_shared':
+                
+                log.info(f"Predicted Mu Shape: {outputs['pred_mu'].shape}")
+                log.info(f"Predicted Sigma Shape: {outputs['pred_sigma'].shape}")
+
                 action = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
+
+                log.info(f"Action Shape: {action.shape}")
                 #action = self.extract_branch(action)
+            
             else:
+            
                 action = self.extract_branch(outputs['action_branches'])
+        
         return action[0].cpu().numpy(), outputs['pred_speed'].item()
 
     @staticmethod
