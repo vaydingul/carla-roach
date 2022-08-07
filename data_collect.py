@@ -54,7 +54,7 @@ def collect_single(run_name, env, data_writer, driver_dict, driver_log_dir, coac
         coach_control = {}
         driver_supervision = {}
         coach_supervision = {}
-
+        
         for actor_id, driver in driver_dict.items():
             driver_control[actor_id] = driver.run_step(obs[actor_id], timestamp)
             driver_supervision[actor_id] = driver.supervision_dict
