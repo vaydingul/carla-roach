@@ -25,7 +25,7 @@ K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
 OFFSET = 10
-STEP = 4
+STEP = 200 # 4
 STRIDE = 1
 
 THICKNESS_MAX = 5
@@ -157,13 +157,13 @@ def main(dataset_path, episode):
                 waypoint = waypoint.squeeze()
                 img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(thickness[ix]), (0, 0, int(color[ix])), -1)
                 
-        #cv2.imshow('Waypoint Animation', img)
+        cv2.imshow('Waypoint Animation', img)
 
-        #if cv2.waitKey(1) == ord('q'):
-        #    
-        #    # press q to terminate the loop
-        #    cv2.destroyAllWindows()
-        #    break
+        if cv2.waitKey(1) == ord('q'):
+           
+           # press q to terminate the loop
+           cv2.destroyAllWindows()
+           break
         
         video.write(cv2.resize(img, (WIDTH//2, HEIGHTH//2)))
 
@@ -174,6 +174,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
      # Fetch the h5 files
-    dataset_path = '/home/vaydingul20/Documents/Codes/TEN_EPISODE/expert/'
-    episode = 5
+    dataset_path = '/home/vaydingul20/Documents/Codes/FIVE_EPISODE/expert/'
+    episode = 3
     main(dataset_path, episode)
