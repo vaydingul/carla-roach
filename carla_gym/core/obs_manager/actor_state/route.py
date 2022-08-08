@@ -44,6 +44,7 @@ class ObsManager(ObsManagerBase):
         angle_diff = np.clip(angle_diff, -2, 2)
         
         # route_locs
+        wp_location_list_world = []
         location_list = []
         route_length = len(route_plan)
         for i in range(self._route_steps):
@@ -53,6 +54,7 @@ class ObsManager(ObsManagerBase):
                 waypoint, road_option = route_plan[-1]
 
             wp_location_world_coord = waypoint.transform.location
+            wp_location_list_world.append([wp_location_world_coord.x, wp_location_world_coord.y, wp_location_world_coord.z])
             wp_location_actor_coord = trans_utils.loc_global_to_ref(wp_location_world_coord, ev_transform)
             location_list += [wp_location_actor_coord.x, wp_location_actor_coord.y]
         
@@ -63,7 +65,8 @@ class ObsManager(ObsManagerBase):
             'lateral_dist': np.array([lateral_dist], dtype=np.float32),
             'angle_diff': np.array([angle_diff], dtype=np.float32),
             'route_locs': np.array(location_list, dtype=np.float32),
-            'dist_remaining': np.array([dist_remaining_in_km], dtype=np.float32)
+            'dist_remaining': np.array([dist_remaining_in_km], dtype=np.float32),
+            'wp_locs': np.array(wp_location_list_world, dtype=np.float32)
         }
         return obs
 

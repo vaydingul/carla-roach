@@ -10,7 +10,7 @@ import math
 
 
 # Fetch the h5 files
-dataset_path = '/home/vaydingul20/Documents/Codes/FIVE_EPISODE/expert/'
+dataset_path = '/home/vaydingul20/Documents/Codes/dataset/expert/'
 h5_files = [f for f in os.listdir(dataset_path) if f.endswith('.h5')]
 while True:
 
@@ -36,7 +36,7 @@ while True:
         brake = file[f"step_{int(i)}/supervision/action/"][()][2]
         speed = file[f"step_{int(i)}/obs/speed/speed/"][()][0]
         ax.set_title(
-            f'Step {i} - Command = {command} \n Throttle =  {throttle} - Steer =  {steer} - Brake =  {brake} \n Speed = {speed}')
+            f'Step {i} - Command = {command} \n Throttle =  {throttle:.2} - Steer =  {steer:.2} - Brake =  {brake:.2} \n Speed = {speed:.2}')
 
         return ax_image, ax,
 

@@ -6,6 +6,7 @@ import copy
 
 from carla_gym.utils.config_utils import load_entry_point
 
+log = logging.getLogger(__name__)
 
 class RlBirdviewAgent():
     def __init__(self, path_to_conf_file='config_agent.yaml'):
@@ -55,7 +56,7 @@ class RlBirdviewAgent():
 
         self._wrapper_class = load_entry_point(cfg['env_wrapper']['entry_point'])
         self._wrapper_kwargs = cfg['env_wrapper']['kwargs']
-
+        log.info(f"Wrapper Class: {cfg['env_wrapper']['entry_point']}" )
     def run_step(self, input_data, timestamp):
         input_data = copy.deepcopy(input_data)
 

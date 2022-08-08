@@ -22,7 +22,7 @@ def report_dataset_size(dataset_dir):
                     if group_step.attrs.get('critical', True):
                         critical_steps += 1
         except:
-            log.warning(f'Unalbe to open h5 file: {h5_path}')
+            log.warning(f'Unable to open h5 file: {h5_path}')
 
     log.warning(f'{dataset_dir}: {len(list_h5_path)} episodes, '
                 f'{total_steps} saved frames={total_steps/36000:.2f} hours, '
@@ -49,7 +49,9 @@ class DataWriter():
                 'left_rgb': None,
                 'right_rgb': None,
                 'gnss': None,
-                'speed': None
+                'speed': None,
+                'ego_vehicle_route': None,
+                'ego_vehicle_detailed': None
             },
             'supervision': None,
             'control_diff': None,
@@ -62,6 +64,9 @@ class DataWriter():
         # gnss speed
         data_dict['obs']['gnss'] = obs['gnss']
         data_dict['obs']['speed'] = obs['speed']
+        data_dict['obs']['ego_vehicle_route'] = obs['ego_vehicle_route']
+        data_dict['obs']['ego_vehicle_detailed'] = obs['ego_vehicle_detailed']
+
 
         # left_rgb & right_rgb
         if 'left_rgb' in obs and 'right_rgb' in obs:

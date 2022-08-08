@@ -6,13 +6,15 @@ gnss:
 central_rgb:
   module: camera.rgb
   fov: 100
-  width: 900
+  width: 900      
   height: 256
   location: [-1.5, 0.0, 2.0]
   rotation: [0.0, 0.0, 0.0]
-ego_vehicle:
-  module: actor_state.ego_vehicle
-  
+ego_vehicle_route:
+  module: actor_state.route
+ego_vehicle_detailed:
+  module: object_finder.ego
+
 route_plan:
   module: navigation.waypoint_plan
   steps: 20

@@ -81,7 +81,6 @@ def collect_single(run_name, env, data_writer, driver_dict, driver_log_dir, coac
                     driver_control[actor_id] = coach_control[actor_id]
 
         new_obs, reward, done, info = env.step(driver_control)
-
         if coach_supervision == {}:
             im_rgb = data_writer.write(timestamp=timestamp, obs=obs,
                                        supervision=driver_supervision, reward=reward, control_diff=None)
@@ -98,6 +97,7 @@ def collect_single(run_name, env, data_writer, driver_dict, driver_log_dir, coac
         obs = new_obs
 
         debug_imgs = []
+
         for actor_id, driver in driver_dict.items():
             if log_video:
                 if actor_id in coach_supervision:
