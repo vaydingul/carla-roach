@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 def collect_single(run_name, env, data_writer, driver_dict, driver_log_dir, coach_dict, coach_log_dir,
                    dagger_thresholds, log_video, noise_lon=False, noise_lat=False, alpha_coach=None,
                    remove_final_steps=True):
-
+    
     list_debug_render = []
     list_data_render = []
     ep_stat_dict = {}
@@ -253,7 +253,6 @@ def main(cfg: DictConfig):
         if cfg.save_to_wandb:
             wandb.save(f'{dataset_dir.as_posix()}/*.h5', base_path=cfg.dataset_root)
         return
-
     # make env
     env_setup = OmegaConf.to_container(cfg.test_suites[env_idx])
     env = gym.make(env_setup['env_id'], obs_configs=obs_configs, reward_configs=reward_configs,

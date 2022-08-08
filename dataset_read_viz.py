@@ -10,7 +10,7 @@ import math
 
 
 # Fetch the h5 files
-dataset_path = '/home/vaydingul20/Documents/Codes/new_dataset_carla_9_10_1/expert/'
+dataset_path = '/home/vaydingul20/Documents/Codes/FIVE_EPISODE/expert/'
 h5_files = [f for f in os.listdir(dataset_path) if f.endswith('.h5')]
 while True:
 

@@ -269,7 +269,7 @@ class CoILICRA(nn.Module):
             outputs['pred_features'] = pred_j
         
         outputs["pred_waypoint"] = pred_waypoint
-
+        
         return outputs
 
     def forward_branch(self, command, im, state):
