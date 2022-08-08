@@ -85,9 +85,16 @@ class CilrsWrapper():
 
             im_list.append(im)
 
+        # Waypoint ground-truth generation w.r.t. the ego-vehicle coordinate frame
+        waypoint_locations = obs['ego_vehicle_route/route_locs']
+
+        
+        
+        
         policy_input = {
             'im': th.stack(im_list, dim=1),
-            'state': th.tensor(state_list, dtype=th.float32)
+            'state': th.tensor(state_list, dtype=th.float32),
+            'waypoint_locations': th.tensor(waypoint_locations, dtype=th.float32),
         }
         return policy_input, th.tensor([command], dtype=th.int8)
 

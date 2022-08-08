@@ -56,7 +56,7 @@ class ObsManager(ObsManagerBase):
             wp_location_world_coord = waypoint.transform.location
             wp_location_list_world.append([wp_location_world_coord.x, wp_location_world_coord.y, wp_location_world_coord.z])
             wp_location_actor_coord = trans_utils.loc_global_to_ref(wp_location_world_coord, ev_transform)
-            location_list += [wp_location_actor_coord.x, wp_location_actor_coord.y]
+            location_list.append([wp_location_actor_coord.x, wp_location_actor_coord.y])
         
         # dist_remaining_in_km
         dist_remaining_in_km = (self._parent_actor.route_length - self._parent_actor.route_completed)  / 1000.0

@@ -12,8 +12,6 @@ central_rgb:
   rotation: [0.0, 0.0, 0.0]
 ego_vehicle_route:
   module: actor_state.route
-ego_vehicle_detailed:
-  module: object_finder.ego
 
 route_plan:
   module: navigation.waypoint_plan

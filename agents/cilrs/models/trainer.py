@@ -180,9 +180,9 @@ class Trainer():
 
             
             self.optimizer.zero_grad()
-            outputs = self.policy.forward(**policy_input)
+            outputs = self.policy.forward(policy_input['im'], policy_input['state'])
 
-            action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision, command)
+            action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_locations'])
             loss = action_loss+speed_loss+value_loss+features_loss
             loss.backward()
             self.optimizer.step()
