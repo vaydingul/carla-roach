@@ -34,7 +34,7 @@ class BranchedLoss():
         # Number of steps might differ for trajectory and multi-step control
         number_of_steps_control = outputs['pred_mu'].shape[1] - 1
         number_of_steps_waypoint = outputs['pred_waypoint'].shape[1]
-
+        
 
         # action loss
         branch_masks = self._get_branch_masks(
@@ -109,7 +109,7 @@ class BranchedLoss():
         trajectory_loss = th.zeros_like(action_loss)
         if 'pred_waypoint' in outputs:
 
-            for i in range(number_of_steps_waypoint + 1):
+            for i in range(number_of_steps_waypoint):
 
                 trajectory_loss += self.loss(
                     outputs['pred_waypoint'][:, i, :], waypoints[:, i, :])

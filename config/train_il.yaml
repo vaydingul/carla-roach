@@ -3,7 +3,7 @@ defaults:
   - agent/cilrs/policy: dagger
   - agent/cilrs/training: dagger
   - agent/cilrs/obs_configs: central_rgb_wide_detailed
-train_epochs: 25
+train_epochs: 500
 seed: 2021
 wb_project: debug_cilrs
 wb_name: null

@@ -15,6 +15,7 @@ from .utils.branched_loss import BranchedLoss
 
 log = logging.getLogger(__name__)
 
+
 class Trainer():
     def __init__(self, policy,
                  batch_size=64,
@@ -26,8 +27,8 @@ class Trainer():
                  speed_weight=0.05,
                  value_weight=0.0,
                  features_weight=0.0,
-                 action_loss_weight = 1.0,
-                 trajectory_weight = 1.0,
+                 action_loss_weight=1.0,
+                 trajectory_weight=1.0,
                  l1_loss=True,
                  action_kl=True,
                  action_agg=None,
@@ -46,20 +47,21 @@ class Trainer():
         else:
             self.device = 'cpu'
 
-        self.number_of_steps = policy.number_of_steps
+        self.number_of_steps_control = policy.number_of_steps_control
+        self.number_of_steps_waypoint= policy.number_of_steps_waypoint
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
-        
+
         # kwargs for dataloader
         self.batch_size = batch_size * self.num_gpus
 
         log.info(f'Number of GPUs: {self.num_gpus}')
-        log.info(f'Number of steps: {self.number_of_steps}')
+        log.info(f'Number of steps: {self.number_of_steps_waypoint}')
         log.info(f'Batch size: {self.batch_size}')
 
         self.num_workers = num_workers
         self.im_augmentation = im_augmentation
-        self.lr_schedule_factor = lr_schedule_factor
+        # self.lr_schedule_factor = lr_schedule_factor
 
         # kwargs that are changing
         self.starting_iteration = starting_iteration
@@ -67,30 +69,30 @@ class Trainer():
 
         self.iteration = starting_iteration
 
-        
         self.criterion = BranchedLoss(branch_weights, action_weights, speed_weight,
                                       value_weight, features_weight, action_loss_weight, trajectory_weight, l1_loss, action_kl, action_agg, action_mll)
 
         self.policy = policy.to(self.device)
         # print number of model params
-        model_parameters = filter(lambda p: p.requires_grad, self.policy.parameters())
+        model_parameters = filter(
+            lambda p: p.requires_grad, self.policy.parameters())
         total_params = sum([np.prod(p.size()) for p in model_parameters])
         log.info(f'Trainable parameters: {total_params/1000000:.2f}M')
 
         # optimizer / lr_scheduler
         self.learning_rate = learning_rate
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
-        self.scheduler = self.get_lr_scheduler()
+        # self.scheduler = self.get_lr_scheduler()
 
         # path to save ckpt
         self._ckpt_dir = Path('ckpt')
         self._ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_lr_scheduler(self):
-        return optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', min_lr=1e-7,
-                                                    factor=self.lr_schedule_factor,
-                                                    patience=5)
-
+    # def get_lr_scheduler(self):
+        # return optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', min_lr=1e-7,
+        # factor=self.lr_schedule_factor,
+        # patience=5)
+        
     def learn(self, dataset_dir, train_epochs, env_wrapper, reset_step=False):
         if reset_step:
             self.starting_iteration = 0
@@ -98,11 +100,11 @@ class Trainer():
             self.iteration = 0
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.learning_rate
-            self.scheduler = self.get_lr_scheduler()
+            # self.scheduler = self.get_lr_scheduler()
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
-                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps)
-        
+                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps_control)
+
         log.info(f'Train dataloader size: {len(train_dataset)}')
         log.info(f'Val dataloader size: {len(val_dataset)}')
         log.info(f'Number of workers: {self.num_workers}')
@@ -133,10 +135,11 @@ class Trainer():
                 'val/trajectory_loss': val_trajectory_loss,
                 'time/val_time': time.time()-t_val
             }, step=self.iteration)
-            wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
+            wandb.log(
+                {'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
 
             # update lr
-            self.scheduler.step(val_loss)
+            # self.scheduler.step(val_loss)
 
             # save checkpoint
             # if (idx_epoch==0) or (idx_epoch>5 and val_loss < best_val_loss):
@@ -158,33 +161,35 @@ class Trainer():
             self.starting_iteration = self.iteration+1
 
             ckpt_path = (self._ckpt_dir / f'ckpt_{idx_epoch}.pth').as_posix()
-            
-            self.save(ckpt_path)
-            log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
-            wandb.save(ckpt_path)
-            
+
+            # self.save(ckpt_path)
+            # log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
+            # wandb.save(ckpt_path)
+
         log.info('Learn Finished')
 
     def _train(self, dataset):
         self.policy = self.policy.train()
         t_data_read = time.time()
         for command, policy_input, supervision in dataset:
-        
-            
+
             t0 = time.time()
-            
+
             t_data_read_duration = t0 - t_data_read
             #log.info(f'Data read duration: {(self.batch_size/t_data_read_duration):.2f}')
 
-            policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
-            supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
+            policy_input = dict([(k, th.as_tensor(v).to(self.device))
+                                 for k, v in policy_input.items()])
+            supervision = dict([(k, th.as_tensor(v).to(self.device))
+                                for k, v in supervision.items()])
             command = th.as_tensor(command).to(self.device)
 
-            
             self.optimizer.zero_grad()
-            outputs = self.policy.forward(policy_input['im'], policy_input['state'])
+            outputs = self.policy.forward(
+                policy_input['im'], policy_input['state'])
 
-            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_locations'])
+            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(
+                outputs, supervision, command, policy_input['waypoint_locations'])
             loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
             loss.backward()
             self.optimizer.step()
@@ -214,15 +219,17 @@ class Trainer():
         features_losses = []
         trajectory_losses = []
         for command, policy_input, supervision in dataset:
-            
-          
-            policy_input = dict([(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()])
-            supervision = dict([(k, th.as_tensor(v).to(self.device)) for k, v in supervision.items()])
+
+            policy_input = dict([(k, th.as_tensor(v).to(self.device))
+                                 for k, v in policy_input.items()])
+            supervision = dict([(k, th.as_tensor(v).to(self.device))
+                                for k, v in supervision.items()])
             command = th.as_tensor(command).to(self.device)
 
             # controls = data['cmd']
             with th.no_grad():
-                outputs = self.policy.forward(policy_input['im'], policy_input['state'])
+                outputs = self.policy.forward(
+                    policy_input['im'], policy_input['state'])
                 action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(
                     outputs, supervision, command, policy_input['waypoint_locations'])
                 loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
@@ -267,6 +274,8 @@ class Trainer():
     def load(cls, policy, path):
         saved_variables = th.load(path)
         trainer = cls(policy, **saved_variables['trainer_init_kwargs'])
-        trainer.optimizer.load_state_dict(saved_variables['optimizer_state_dict'])
-        trainer.scheduler.load_state_dict(saved_variables['scheduler_state_dict'])
+        trainer.optimizer.load_state_dict(
+            saved_variables['optimizer_state_dict'])
+        trainer.scheduler.load_state_dict(
+            saved_variables['scheduler_state_dict'])
         return trainer

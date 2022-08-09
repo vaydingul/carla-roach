@@ -37,7 +37,8 @@ class CoILICRA(nn.Module):
                  branches_dropouts=[0.0, 0.5],
                  multi_step_neurons=[256, 256],
                  multi_step_dropouts=[0.0, 0.5],
-                 number_of_steps=4,
+                 number_of_steps_control=4,
+                 number_of_steps_waypoint=4,
                  squash_outputs=True,
                  perception_net='resnet34',
                  ):
@@ -88,7 +89,7 @@ class CoILICRA(nn.Module):
                                  FC(params={'neurons':
                                             [measurements_neurons[-1] + perception_output_neurons] + join_neurons,
                                             'dropouts': join_dropouts,
-                                            'end_layer': nn.ReLU}),
+                                            'end_layer': None}),
                                  'mode': 'cat'})
 
         if squash_outputs:
@@ -187,15 +188,14 @@ class CoILICRA(nn.Module):
             self.waypoint_branches = Branching(waypoint_branch_vector)
 
         # Multi-step action prediction
-        self.number_of_steps = number_of_steps
+        self.number_of_steps_control = number_of_steps_control
+        self.number_of_steps_waypoint = number_of_steps_waypoint
 
         if not use_multi_step_control:
 
-            number_of_steps_control = 0
+            self.number_of_steps_control = 0
 
-        else:
-
-            number_of_steps_control = self.number_of_steps
+        
 
            
         self.multi_step_control = MultiStepControl(params={
@@ -210,7 +210,7 @@ class CoILICRA(nn.Module):
         ),
         'policy_head_mu' : self.mu_branches,
         'policy_head_sigma' : self.sigma_branches,
-        'number_of_steps' : number_of_steps_control,
+        'number_of_steps' : self.number_of_steps_control,
         'initial_hidden_zeros' : initial_hidden_zeros
         }
         )
@@ -228,7 +228,7 @@ class CoILICRA(nn.Module):
             }
             ),
             'policy_head_waypoint' : self.waypoint_branches,
-            'number_of_steps' : self.number_of_steps,
+            'number_of_steps' : self.number_of_steps_waypoint,
             'initial_hidden_zeros' : initial_hidden_zeros
             }
             )
