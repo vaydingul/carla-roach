@@ -7,7 +7,7 @@ data_collect () {
   wb_group=detailed_data \
   test_suites=lb_data \
   n_episodes=80 \
-  dataset_root=/home/vaydingul20/Documents/Codes/dataset-detailed \
+  dataset_root=/home/fguney/VOLKAN/dataset-detailed \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
