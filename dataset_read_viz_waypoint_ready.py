@@ -168,6 +168,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul20/Documents/Codes/dataset/expert/'
-    episode = 0
+    dataset_path = '/home/vaydingul20/Documents/Codes/dataset-detailed-2/expert/'
+    episode = 2
     main(dataset_path, episode)

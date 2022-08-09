@@ -5,9 +5,9 @@ data_collect () {
   python -u data_collect.py resume=true log_video=false save_to_wandb=false \
   wb_project=il_leaderboard_roach \
   wb_group=detailed_data \
-  test_suites=lb_data \
-  n_episodes=80 \
-  dataset_root=/home/fguney/VOLKAN/dataset-detailed \
+  test_suites=lb_data_346 \
+  n_episodes=60 \
+  dataset_root=/home/vaydingul20/Documents/Codes/dataset-detailed-2 \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
@@ -54,7 +54,7 @@ RED=$'\e[0;31m'
 NC=$'\e[0m'
 PYTHON_RETURN=1
 until [ $PYTHON_RETURN == 0 ]; do
-  export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/nvidia_icd.json"
+  
   data_collect
   PYTHON_RETURN=$?
   echo "${RED} PYTHON_RETURN=${PYTHON_RETURN}!!! Start Over!!!${NC}" >&2
