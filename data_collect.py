@@ -10,7 +10,7 @@ import logging
 import subprocess
 import os
 import sys
-
+import time
 from stable_baselines3.common.vec_env.base_vec_env import tile_images
 from gym.wrappers.monitoring.video_recorder import ImageEncoder
 
@@ -255,10 +255,12 @@ def main(cfg: DictConfig):
         return
     # make env
     env_setup = OmegaConf.to_container(cfg.test_suites[env_idx])
+    # env = gym.make(env_setup['env_id'], obs_configs=obs_configs, reward_configs=reward_configs,
+    #                terminal_configs=terminal_configs, host=cfg.host, port=cfg.port,
+    #                seed=cfg.seed, no_rendering=cfg.no_rendering, **env_setup['env_configs'])
     env = gym.make(env_setup['env_id'], obs_configs=obs_configs, reward_configs=reward_configs,
-                   terminal_configs=terminal_configs, host=cfg.host, port=cfg.port,
-                   seed=cfg.seed, no_rendering=cfg.no_rendering, **env_setup['env_configs'])
-
+                terminal_configs=terminal_configs, host=cfg.host, port=cfg.port,
+                seed=int(time.time()), no_rendering=cfg.no_rendering, **env_setup['env_configs'])
     # main loop
     n_episodes_per_env = math.ceil(cfg.n_episodes/len(cfg.test_suites))
 
