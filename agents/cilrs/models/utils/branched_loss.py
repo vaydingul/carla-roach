@@ -109,7 +109,7 @@ class BranchedLoss():
         trajectory_loss = th.zeros_like(action_loss)
         if 'pred_waypoint' in outputs:
 
-            for i in range(number_of_steps_waypoint + 1):
+            for i in range(number_of_steps_waypoint):
 
                 trajectory_loss += self.loss(
                     outputs['pred_waypoint'][:, i, :], waypoints[:, i, :])

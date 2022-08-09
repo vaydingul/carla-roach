@@ -26,8 +26,8 @@ class Trainer():
                  speed_weight=0.05,
                  value_weight=0.0,
                  features_weight=0.0,
-                 action_loss_weight = 1.0,
-                 trajectory_weight = 1.0,
+                 action_loss_weight=1.0,
+                 trajectory_weight=1.0,
                  l1_loss=True,
                  action_kl=True,
                  action_agg=None,
@@ -46,7 +46,8 @@ class Trainer():
         else:
             self.device = 'cpu'
 
-        self.number_of_steps = policy.number_of_steps
+        self.number_of_steps_control = policy.number_of_steps_control
+        self.number_of_steps_waypoint= policy.number_of_steps_waypoint
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
         
@@ -101,7 +102,7 @@ class Trainer():
             self.scheduler = self.get_lr_scheduler()
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
-                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps)
+                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps_control)
         
         log.info(f'Train dataloader size: {len(train_dataset)}')
         log.info(f'Val dataloader size: {len(val_dataset)}')
