@@ -41,7 +41,7 @@ agent.cilrs.training.kwargs.batch_size=1 \
 agent.cilrs.training.kwargs.num_workers=4 \
 agent.cilrs.policy.kwargs.use_multi_step_control=true \
 agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
-agent.cilrs.policy.kwargs.initial_hidden_zeros=false \
+agent.cilrs.policy.kwargs.initial_hidden_zeros=true \
 cache_dir="$1"
 }
 
