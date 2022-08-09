@@ -27,6 +27,7 @@ class Trainer():
                  value_weight=0.0,
                  features_weight=0.0,
                  action_loss_weight = 1.0,
+                 trajectory_weight = 1.0,
                  l1_loss=True,
                  action_kl=True,
                  action_agg=None,
@@ -68,7 +69,7 @@ class Trainer():
 
         
         self.criterion = BranchedLoss(branch_weights, action_weights, speed_weight,
-                                      value_weight, features_weight, action_loss_weight, l1_loss, action_kl, action_agg, action_mll)
+                                      value_weight, features_weight, action_loss_weight, trajectory_weight, l1_loss, action_kl, action_agg, action_mll)
 
         self.policy = policy.to(self.device)
         # print number of model params
@@ -121,7 +122,7 @@ class Trainer():
 
             # val
             t_val = time.time()
-            val_loss, val_action_loss, val_speed_loss, val_value_loss, val_features_loss = \
+            val_loss, val_action_loss, val_speed_loss, val_value_loss, val_features_loss, val_trajectory_loss = \
                 self._validate(val_dataset, idx_epoch)
             wandb.log({
                 'val/loss': val_loss,
@@ -129,6 +130,7 @@ class Trainer():
                 'val/speed_loss': val_speed_loss,
                 'val/value_loss': val_value_loss,
                 'val/features_loss': val_features_loss,
+                'val/trajectory_loss': val_trajectory_loss,
                 'time/val_time': time.time()-t_val
             }, step=self.iteration)
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
@@ -182,8 +184,8 @@ class Trainer():
             self.optimizer.zero_grad()
             outputs = self.policy.forward(policy_input['im'], policy_input['state'])
 
-            action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_locations'])
-            loss = action_loss+speed_loss+value_loss+features_loss
+            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_locations'])
+            loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
             loss.backward()
             self.optimizer.step()
 
@@ -193,6 +195,7 @@ class Trainer():
                 'train/speed_loss': speed_loss.item(),
                 'train/value_loss': value_loss.item(),
                 'train/features_loss': features_loss.item(),
+                'train/trajectory_loss': trajectory_loss.item(),
                 'time/train_fps': self.batch_size / (time.time()-t0),
                 'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
@@ -209,6 +212,7 @@ class Trainer():
         speed_losses = []
         value_losses = []
         features_losses = []
+        trajectory_losses = []
         for command, policy_input, supervision in dataset:
             
           
@@ -218,26 +222,28 @@ class Trainer():
 
             # controls = data['cmd']
             with th.no_grad():
-                outputs = self.policy.forward(**policy_input)
-                action_loss, speed_loss, value_loss, features_loss = self.criterion.forward(
-                    outputs, supervision, command)
-                loss = action_loss+speed_loss+value_loss+features_loss
+                outputs = self.policy.forward(policy_input['im'], policy_input['state'])
+                action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(
+                    outputs, supervision, command, policy_input['waypoint_locations'])
+                loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
                 losses.append(loss.item())
                 action_losses.append(action_loss.item())
                 speed_losses.append(speed_loss.item())
                 value_losses.append(value_loss.item())
                 features_losses.append(features_loss.item())
+                trajectory_losses.append(trajectory_loss.item())
 
         loss = np.mean(losses)
         action_loss = np.mean(action_losses)
         speed_loss = np.mean(speed_losses)
         value_loss = np.mean(value_losses)
         features_loss = np.mean(features_losses)
+        trajectory_loss = np.mean(trajectory_losses)
 
         # if idx_epoch == 0:
         #     wandb.log({'inspect/im_val': [wandb.Image(policy_input['im'], caption="val")]}, step=idx_epoch)
 
-        return loss, action_loss, speed_loss, value_loss, features_loss
+        return loss, action_loss, speed_loss, value_loss, features_loss, trajectory_loss
 
     def save(self, path: str):
         if self.num_gpus > 1:

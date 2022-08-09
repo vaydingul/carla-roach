@@ -33,6 +33,9 @@ class MultiStepControl(nn.Module):
 		if 'number_of_steps' not in params:
 			raise ValueError(" Missing the number of steps parameter ")
 
+		if 'initial_hidden_zeros' not in params:
+			raise ValueError(" Missing the initial hidden zeros parameter ")	
+
 		self.input_size = params['input_size']
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
@@ -42,6 +45,7 @@ class MultiStepControl(nn.Module):
 		self.policy_head_sigma = params['policy_head_sigma']
 		self.number_of_steps = params['number_of_steps']
 
+		self.initial_hidden_zeros = params['initial_hidden_zeros']
 		# TODO: First hidden state is the feature extracted from the image and 
 		# the high level command module
 
@@ -52,7 +56,14 @@ class MultiStepControl(nn.Module):
 		mu_vector = []
 		sigma_vector = []
 		j_vector = []
-		h = j
+
+		if self.initial_hidden_zeros:
+			
+			h = torch.zeros_like(j)
+		
+		else:
+			
+			h = j
 
 		mu = self.policy_head_mu(j)[0]#torch.zeros((j.shape[0], 2), dtype = j.dtype)
 		sigma = self.policy_head_sigma(j)[0]#torch.zeros((j.shape[0], 2), dtype = j.dtype)
@@ -111,6 +122,10 @@ class MultiStepWaypoint(nn.Module):
 		if 'number_of_steps' not in params:
 			raise ValueError(" Missing the number of steps parameter ")
 
+		if 'initial_hidden_zeros' not in params:
+			raise ValueError(" Missing the initial hidden zeros parameter ")
+
+
 		self.input_size = params['input_size']
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
@@ -119,6 +134,7 @@ class MultiStepWaypoint(nn.Module):
 		self.policy_head_waypoint = params['policy_head_waypoint']#nn.Linear(self.hidden_size, self.input_size)
 		self.number_of_steps = params['number_of_steps']
 
+		self.initial_hidden_zeros = params['initial_hidden_zeros']
 		# TODO: First hidden state is the feature extracted from the image and 
 		# the high level command module
 
@@ -128,10 +144,17 @@ class MultiStepWaypoint(nn.Module):
 		
 		waypoint_vector = []
 		j_vector = []
-		h = j
+
+		if self.initial_hidden_zeros:
+
+			h = torch.zeros_like(j)
+
+		else:
+	
+			h = j
 
 		# It should be (0, 0) for the first step
-		waypoint = torch.zeros((j.shape[0], 2), dtype = j.dtype) # self.policy_head_waypoint(j)[0]
+		waypoint = torch.zeros((j.shape[0], 2), dtype = j.dtype, device=j.device) # self.policy_head_waypoint(j)[0]
 		
 		#waypoint_vector.append(waypoint)
 

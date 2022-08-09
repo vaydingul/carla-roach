@@ -7,7 +7,7 @@ EPS = 1e-5
 
 
 class BranchedLoss():
-    def __init__(self, branch_weights, action_weights, speed_weight, value_weight, features_weight, action_loss_weight, l1_loss,
+    def __init__(self, branch_weights, action_weights, speed_weight, value_weight, features_weight, action_loss_weight, trajectory_weight, l1_loss,
                  action_kl, action_agg, action_mll):
         if l1_loss:
             self.loss = F.l1_loss
@@ -20,6 +20,7 @@ class BranchedLoss():
         self.value_weight = value_weight
         self.features_weight = features_weight
         self.action_loss_weight = action_loss_weight
+        self.trajectory_weight = trajectory_weight
         self.action_kl = action_kl
         self.action_mll = action_mll
         self.action_agg = action_agg
@@ -30,7 +31,10 @@ class BranchedLoss():
     def forward(self, outputs, supervisions, commands, waypoints):
         commands.clamp_(0, self.n_branches-1)
 
-        number_of_steps = supervisions['action_mu'].shape[1] - 1
+        # Number of steps might differ for trajectory and multi-step control
+        number_of_steps_control = outputs['pred_mu'].shape[1] - 1
+        number_of_steps_waypoint = outputs['pred_waypoint'].shape[1]
+
 
         # action loss
         branch_masks = self._get_branch_masks(
@@ -45,7 +49,7 @@ class BranchedLoss():
                 kl_loss = 0.
                 assert self.n_branches == 1, "Number of branches must be 1 for multi-step architecture"
 
-                for i in range(number_of_steps + 1):
+                for i in range(number_of_steps_control + 1):
                     dist_sup = Beta(
                         supervisions['action_mu'][:, i, :], supervisions['action_sigma'][:, i, :])
                     dist_pred = Beta(
@@ -59,7 +63,7 @@ class BranchedLoss():
                             kl_loss += loss_ij * self.action_weights[j]
                         else:
                             kl_loss += loss_ij * \
-                                self.action_weights[j] / number_of_steps
+                                self.action_weights[j] / number_of_steps_control
 
                 action_loss += kl_loss
 
@@ -89,7 +93,7 @@ class BranchedLoss():
         if 'pred_features' in outputs and 'features' in supervisions:
             feature_loss = 0.
 
-            for i in range(number_of_steps + 1):
+            for i in range(number_of_steps_control + 1):
 
                 if i == 0:
 
@@ -99,13 +103,13 @@ class BranchedLoss():
                 else:
 
                     feature_loss += F.mse_loss(outputs['pred_features'][:, i, :],
-                                               supervisions['features'][:, i, :]) / number_of_steps
+                                               supervisions['features'][:, i, :]) / number_of_steps_control
 
         # Trajectory loss
         trajectory_loss = th.zeros_like(action_loss)
         if 'pred_waypoint' in outputs:
 
-            for i in range(number_of_steps + 1):
+            for i in range(number_of_steps_waypoint + 1):
 
                 trajectory_loss += self.loss(
                     outputs['pred_waypoint'][:, i, :], waypoints[:, i, :])
@@ -113,8 +117,8 @@ class BranchedLoss():
         return action_loss * self.action_loss_weight,\
             speed_loss * self.speed_weight,\
             value_loss * self.value_weight,\
-            feature_loss * self.features_weight,\
-            trajectory_loss * self.features_weight
+            feature_loss * self.features_weight * self.action_loss_weight,\
+            trajectory_loss * self.trajectory_weight
 
     @staticmethod
     def _get_branch_masks(commands, n_branches, n_actions):

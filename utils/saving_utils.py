@@ -65,8 +65,6 @@ class DataWriter():
         data_dict['obs']['gnss'] = obs['gnss']
         data_dict['obs']['speed'] = obs['speed']
         data_dict['obs']['ego_vehicle_route'] = obs['ego_vehicle_route']
-        data_dict['obs']['ego_vehicle_detailed'] = obs['ego_vehicle_detailed']
-
 
         # left_rgb & right_rgb
         if 'left_rgb' in obs and 'right_rgb' in obs:

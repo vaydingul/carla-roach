@@ -86,7 +86,7 @@ class CilrsWrapper():
             im_list.append(im)
 
         # Waypoint ground-truth generation w.r.t. the ego-vehicle coordinate frame
-        waypoint_locations = obs['ego_vehicle_route/route_locs']
+        waypoint_locations = obs['ego_vehicle_route']['route_locs']
 
         
         

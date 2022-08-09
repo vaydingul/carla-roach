@@ -10,7 +10,8 @@ kwargs:
   speed_weight: 0.05
   value_weight: 0.0
   features_weight: 0.0
-  action_loss_weight: 1.0
+  action_loss_weight: 0.5
+  trajectory_weight: 0.5
   l1_loss: true
   action_kl: true
   action_agg: null
