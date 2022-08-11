@@ -55,7 +55,7 @@ class Trainer():
         self.batch_size = batch_size * self.num_gpus
 
         log.info(f'Number of GPUs: {self.num_gpus}')
-        log.info(f'Number of steps: {self.number_of_steps}')
+        log.info(f'Number of steps: {self.number_of_steps_waypoint}')
         log.info(f'Batch size: {self.batch_size}')
 
         self.num_workers = num_workers
