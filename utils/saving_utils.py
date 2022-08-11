@@ -50,8 +50,7 @@ class DataWriter():
                 'right_rgb': None,
                 'gnss': None,
                 'speed': None,
-                'ego_vehicle_route': None,
-                'ego_vehicle_detailed': None
+                'ego_vehicle_route': None
             },
             'supervision': None,
             'control_diff': None,

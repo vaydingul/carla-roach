@@ -114,7 +114,7 @@ def main(dataset_path, episode):
     f = h5py.File(h5_file, 'r')
 
     fourcc = VideoWriter_fourcc(*'mp4v')
-    video = VideoWriter('./wp.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
+    video = VideoWriter('./wp-ground-truth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
     while i < 3000:
@@ -168,6 +168,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul20/Documents/Codes/dataset-detailed-2/expert/'
-    episode = 2
+    dataset_path = '/home/vaydingul20/Documents/Codes/dataset-detailed/expert/'
+    episode = 0
     main(dataset_path, episode)

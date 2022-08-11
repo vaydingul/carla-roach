@@ -5,15 +5,15 @@ data_collect () {
   python -u data_collect.py resume=true log_video=false save_to_wandb=false \
   wb_project=il_leaderboard_roach \
   wb_group=detailed_data \
-  test_suites=lb_data_346 \
-  n_episodes=60 \
-  dataset_root=/home/vaydingul20/Documents/Codes/dataset-detailed-2 \
+  test_suites=lb_data_6 \
+  n_episodes=40 \
+  dataset_root=/home/vaydingul20/Documents/Codes/dataset-detailed-3 \
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \
   agent/cilrs/obs_configs=central_rgb_wide_detailed \
   inject_noise=true \
-  actors.hero.terminal.kwargs.max_time=300 \
+  actors.hero.terminal.kwargs.max_time=100 \
   actors.hero.terminal.kwargs.no_collision=true \
   actors.hero.terminal.kwargs.no_run_rl=false \
   actors.hero.terminal.kwargs.no_run_stop=false \

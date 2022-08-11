@@ -160,10 +160,12 @@ class Trainer():
 
             ckpt_path = (self._ckpt_dir / f'ckpt_{idx_epoch}.pth').as_posix()
             
-            self.save(ckpt_path)
-            log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
-            wandb.save(ckpt_path)
-            
+            if (idx_epoch + 1) % 5 == 0
+
+                self.save(ckpt_path)
+                log.info(f'Save ckpt, val_loss: {val_loss:.6f} path: {ckpt_path}')
+                wandb.save(ckpt_path)
+                
         log.info('Learn Finished')
 
     def _train(self, dataset):

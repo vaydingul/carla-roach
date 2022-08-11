@@ -133,7 +133,7 @@ def main(dataset_path, episode):
     f = h5py.File(h5_file, 'r')
 
     fourcc = VideoWriter_fourcc(*'mp4v')
-    video = VideoWriter('./wp.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
+    video = VideoWriter('./wp-gnss-smooth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
     while i < 3000:
@@ -202,10 +202,10 @@ def main(dataset_path, episode):
                     rotation_smooth += (np.arctan2(points_in_camera_coords_spline[j+1, 0] - points_in_camera_coords_spline[j, 0], points_in_camera_coords_spline[j+1, 2] - points_in_camera_coords_spline[j, 2]))
 
 
-            cv2.putText(img, f"Average Amplitude Noisy = {amplitude_original / waypoints.shape[0]:.2}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            cv2.putText(img, f"Average Amplitude Smooth = {amplitude_smooth / waypoints_spline.shape[0]:.2}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            cv2.putText(img, f"Average Rotation Noisy = {rotation_original / waypoints.shape[0]:.2}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            cv2.putText(img, f"Average Rotation Smooth = {rotation_smooth / waypoints_spline.shape[0]:.2}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            #cv2.putText(img, f"Average Amplitude Noisy = {amplitude_original / waypoints.shape[0]:.2}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            #cv2.putText(img, f"Average Amplitude Smooth = {amplitude_smooth / waypoints_spline.shape[0]:.2}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            #cv2.putText(img, f"Average Rotation Noisy = {rotation_original / waypoints.shape[0]:.2}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            #cv2.putText(img, f"Average Rotation Smooth = {rotation_smooth / waypoints_spline.shape[0]:.2}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         cv2.imshow('Waypoint Animation', img)
 
@@ -218,13 +218,13 @@ def main(dataset_path, episode):
         video.write(cv2.resize(img, (WIDTH//2, HEIGHTH//2)))
 
         i += 1
-        time.sleep(0.05)
+        time.sleep(0.01)
     video.release()
 
 
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul20/Documents/Codes/FIVE_EPISODE/expert/'
-    episode = 4
+    dataset_path = '/home/vaydingul20/Documents/Codes/dataset-detailed/expert/'
+    episode = 0
     main(dataset_path, episode)

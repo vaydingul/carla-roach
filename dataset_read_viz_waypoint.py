@@ -23,7 +23,7 @@ K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
 OFFSET = 10
-STEP = 200  # 4
+STEP = 4  # 4
 STRIDE = 1
 
 THICKNESS_MAX = 5
@@ -112,7 +112,7 @@ def main(dataset_path, episode):
     f = h5py.File(h5_file, 'r')
 
     fourcc = VideoWriter_fourcc(*'mp4v')
-    video = VideoWriter('./wp.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
+    video = VideoWriter('./wp-gnss.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
     while i < 3000:
@@ -170,6 +170,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul20/Documents/Codes/FIVE_EPISODE/expert/'
-    episode = 3
+    dataset_path = '/home/vaydingul20/Documents/Codes/dataset-detailed/expert/'
+    episode = 0
     main(dataset_path, episode)
