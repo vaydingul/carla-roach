@@ -226,7 +226,7 @@ class CoILICRA(nn.Module):
             }
             ),
             'policy_head_waypoint' : self.waypoint_branches,
-            'number_of_steps' : self.number_of_steps,
+            'number_of_steps' : self.number_of_steps_waypoint,
             'initial_hidden_zeros' : initial_hidden_zeros
             }
             )
