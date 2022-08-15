@@ -113,7 +113,7 @@ class CilrsAgent():
 
         policy_input, command = self._env_wrapper.process_obs(input_data)
 
-        actions, pred_speed = self._policy.forward_branch(command, **policy_input)
+        actions, pred_speed = self._policy.forward_branch(command, im = policy_input['im'], state = policy_input['state'])
         control = self._env_wrapper.process_act(actions)
 
         self._render_dict = {

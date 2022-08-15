@@ -24,8 +24,9 @@
 
 train_il () {
 
-python -u train_il.py reset_step=true \
-wb_project="il_leaderboard_roach" wb_group="train_trajectory" 'wb_name="Trajectory Branch Supervision"' \
+python -u train_il.py reset_step=false \
+agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/kv70mvn2 agent.cilrs.wb_ckpt_step=24 \
+wb_project="il_leaderboard_roach" wb_group="train_trajectory" 'wb_name="Trajectory Branch Supervision contd"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
