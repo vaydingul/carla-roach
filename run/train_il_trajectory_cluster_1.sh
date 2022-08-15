@@ -45,6 +45,7 @@ agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
 agent.cilrs.policy.kwargs.initial_hidden_zeros=true \
 agent.cilrs.policy.kwargs.number_of_steps_control=0 \
 agent.cilrs.policy.kwargs.number_of_steps_waypoint=4 \
+train_il.train_epochs=50 \
 cache_dir="$1"
 }
 
