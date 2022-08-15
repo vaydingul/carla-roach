@@ -51,7 +51,7 @@ class Trainer():
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
         
-        batch_size = 96
+        batch_size = 80
         num_workers = 8
 
 
