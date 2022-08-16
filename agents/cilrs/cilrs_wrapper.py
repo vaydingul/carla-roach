@@ -6,6 +6,7 @@ import carla_gym.utils.transforms as trans_utils
 import carla_gym.core.task_actor.common.navigation.route_manipulation as gps_util
 from torchvision import transforms as T
 import torch as th
+from agents.cilrs.models.utils import controller
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +28,11 @@ class CilrsWrapper():
         self.value_as_supervision = value_as_supervision
         self.action_distribution = action_distribution
         self.dim_features_supervision = dim_features_supervision
+
+        # PID controllers for the vehicle control
+        self.longitudinal_pid_controller = controller.PIDController([5, 0.025, 0.01])
+        self.lateral_pid_controller = controller.PIDController([7.5, 0.05, 0.0])
+
 
         self.speed_factor = 12.0
         self.value_factor = value_factor
@@ -98,7 +104,7 @@ class CilrsWrapper():
         }
         return policy_input, th.tensor([command], dtype=th.int8)
 
-    def process_act(self, action):
+    def process_act_control(self, action):
         if self.acc_as_action:
             acc, steer = action.astype(np.float64)
             if acc >= 0.0:
@@ -118,6 +124,34 @@ class CilrsWrapper():
         
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
         return control
+
+    def process_act_trajectory(self, action):
+
+        acc = self.longitudinal_pid_controller.step(action[0])
+        steer = self.lateral_pid_controller.step(action[1])
+
+
+
+        if acc >= 0.0:
+
+            throttle = acc
+            brake = 0.0
+
+        else:
+
+            throttle = 0.0
+            brake = np.abs(acc)
+
+        throttle = np.clip(throttle, 0, 1)
+        brake = np.clip(brake, 0, 1)
+        steer = np.clip(steer, -1, 1)
+
+        #log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
+
+        control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
+
+        return control
+
 
     def process_supervision(self, supervision):
         '''
@@ -164,7 +198,8 @@ class CilrsWrapper():
 
     @staticmethod
     def im_render(render_dict):
-        im_birdview = CilrsWrapper.draw_route(render_dict)
+        #im_birdview = CilrsWrapper.draw_route(render_dict)
+        im_birdview = CilrsWrapper.draw_waypoint(render_dict)
         im_birdview = CilrsWrapper.draw_gnss(im_birdview, render_dict)
 
         im_rgb = render_dict['central_rgb']
@@ -237,6 +272,53 @@ class CilrsWrapper():
         rendered_birdview = render_dict['birdview']
 
         for i, loc in enumerate(render_dict['route_plan']['location']):
+            x = int(np.round(birdview_cfg['width_in_pixels']/2 + loc[1]*birdview_cfg['pixels_per_meter']))
+            y = int(np.round(birdview_cfg['width_in_pixels'] - birdview_cfg['pixels_ev_to_bottom']
+                             - loc[0] * birdview_cfg['pixels_per_meter']))
+
+            # VOID = 0
+            # LEFT = 1
+            # RIGHT = 2
+            # STRAIGHT = 3
+            # LANEFOLLOW = 4
+            # CHANGELANELEFT = 5
+            # CHANGELANERIGHT = 6
+            cmd = render_dict['route_plan']['command'][i]
+
+            if cmd == 1:
+                # LEFT = 1
+                color = COLOR_RED
+            elif cmd == 2:
+                # RIGHT = 2
+                color = COLOR_GREEN
+            elif cmd == 3:
+                # STRAIGHT = 3
+                color = COLOR_ORANGE_0
+            elif cmd == 4:
+                # LANEFOLLOW = 4
+                color = COLOR_WHITE
+            elif cmd == 5:
+                # CHANGELANELEFT = 5
+                color = COLOR_YELLOW
+            elif cmd == 6:
+                # CHANGELANERIGHT = 6
+                color = COLOR_BLUE
+            elif cmd == -1:
+                # VOID = -1
+                color = COLOR_BLACK
+            else:
+                print('error!!!!', cmd)
+            cv2.circle(rendered_birdview, (x, y), 3, color, -1)
+
+        return rendered_birdview
+
+
+    @staticmethod
+    def draw_waypoint(render_dict):
+        birdview_cfg = render_dict['obs_configs']['birdview']
+        rendered_birdview = render_dict['birdview']
+
+        for i, loc in enumerate(render_dict['pred_waypoint']):
             x = int(np.round(birdview_cfg['width_in_pixels']/2 + loc[1]*birdview_cfg['pixels_per_meter']))
             y = int(np.round(birdview_cfg['width_in_pixels'] - birdview_cfg['pixels_ev_to_bottom']
                              - loc[0] * birdview_cfg['pixels_per_meter']))

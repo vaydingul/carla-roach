@@ -113,14 +113,17 @@ class CilrsAgent():
 
         policy_input, command = self._env_wrapper.process_obs(input_data)
 
-        actions, pred_speed = self._policy.forward_branch(command, im = policy_input['im'], state = policy_input['state'])
-        control = self._env_wrapper.process_act(actions)
+        actions_control, actions_trajectory, pred_speed, pred_waypoint = self._policy.forward_branch(command, im = policy_input['im'], state = policy_input['state'])
+        
+        control = self._env_wrapper.process_act_control(actions_control)
+        control = self._env_wrapper.process_act_trajectory(actions_trajectory)
 
         self._render_dict = {
             'policy_input': policy_input,
             'command': command,
-            'action': actions,
+            'action': actions_control,
             'pred_speed': pred_speed,
+            'pred_waypoint': pred_waypoint,
             'obs_configs': self._obs_configs,
             'birdview': input_data['birdview']['rendered'],
             'route_plan': input_data['route_plan'],
