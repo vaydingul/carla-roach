@@ -24,9 +24,9 @@
 
 train_il () {
 
-python -u train_il.py reset_step=true \
-wb_project="il_leaderboard_roach" wb_group="train_multi_step_control_data_read" 'wb_name="L_K+L_V (cluster) mg nw=2"' \
-dagger_datasets=["/userfiles/vaydingul20/dummy/"] \
+python -u train_il.py reset_step=false \
+wb_project="il_leaderboard_roach" wb_group="train_trajectory" 'wb_name="Trajectory Branch Supervision with Temporal Module (w/ Target Waypoint)"' \
+dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -36,9 +36,15 @@ agent.cilrs.training.kwargs.action_kl=true \
 agent.cilrs.env_wrapper.kwargs.value_as_supervision=true \
 agent.cilrs.training.kwargs.value_weight=0.001 \
 agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
-agent.cilrs.training.kwargs.features_weight=0.0 \
-agent.cilrs.training.kwargs.batch_size=64 \
-agent.cilrs.training.kwargs.num_workers=2 \
+agent.cilrs.training.kwargs.features_weight=0.05 \
+agent.cilrs.training.kwargs.batch_size=96 \
+agent.cilrs.training.kwargs.num_workers=4 \
+agent.cilrs.policy.kwargs.use_multi_step_control=false \
+agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
+agent.cilrs.policy.kwargs.initial_hidden_zeros=true \
+agent.cilrs.policy.kwargs.number_of_steps_control=4 \
+agent.cilrs.policy.kwargs.number_of_steps_waypoint=4 \
+train_epochs=25 \
 cache_dir="$1"
 }
 
@@ -82,7 +88,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/userfiles/vaydingul20/dummy/"
+CACHE_DIR="/scratch/users/vaydingul20/carla-dataset-detailed/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"

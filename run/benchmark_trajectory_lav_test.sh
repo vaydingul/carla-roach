@@ -54,9 +54,9 @@
    python -u benchmark.py resume=true log_video=true \
    wb_project=TCP-Trajectory-Branch \
    agent=$agent actors.hero.agent=$agent \
-   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/1r3fgoo3 \
-   'wb_group="Trajectory Supervision with Temporal Module LAV"' \
-   'wb_notes="Trajectory Supervision with Temporal Module Control Prediction on LAV."' \
+   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/3tjzducf \
+   'wb_group="Trajectory Supervision (Improved) LAV"' \
+   'wb_notes="Trajectory Supervision Control Prediction on LAV."' \
    test_suites=lav_test \
    seed=2022 \
    +wb_sub_group=leaderboard_dense-2021 \

@@ -7,6 +7,7 @@ import carla_gym.core.task_actor.common.navigation.route_manipulation as gps_uti
 from torchvision import transforms as T
 import torch as th
 from agents.cilrs.models.utils import controller
+from agents.cilrs.models.utils import waypoint
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +94,9 @@ class CilrsWrapper():
 
         # Waypoint ground-truth generation w.r.t. the ego-vehicle coordinate frame
         waypoint_locations = obs['ego_vehicle_route']['route_locs']
+        waypoint_locations_world_frame = obs['ego_vehicle_route']['wp_locs']
+        world_2_camera = obs['central_rgb'][0]['world_2_camera']
+        camera_2_world = obs['central_rgb'][0]['camera_2_world']
 
         
         
@@ -101,6 +105,9 @@ class CilrsWrapper():
             'im': th.stack(im_list, dim=1),
             'state': th.tensor(state_list, dtype=th.float32),
             'waypoint_locations': th.tensor(waypoint_locations, dtype=th.float32),
+            'waypoint_locations_world_frame': th.tensor(waypoint_locations_world_frame, dtype=th.float32),
+            'world_2_camera': th.tensor(world_2_camera, dtype=th.float32),
+            'camera_2_world': th.tensor(camera_2_world, dtype=th.float32)
         }
         return policy_input, th.tensor([command], dtype=th.int8)
 
@@ -199,10 +206,14 @@ class CilrsWrapper():
     @staticmethod
     def im_render(render_dict):
         #im_birdview = CilrsWrapper.draw_route(render_dict)
-        im_birdview = CilrsWrapper.draw_waypoint(render_dict)
+        im_birdview = CilrsWrapper.draw_waypoint(render_dict, 'pred_waypoint', COLOR_BLUE)
+        im_birdview = CilrsWrapper.draw_waypoint(render_dict, 'gt_waypoint', COLOR_RED)
         im_birdview = CilrsWrapper.draw_gnss(im_birdview, render_dict)
 
         im_rgb = render_dict['central_rgb']
+
+        #im_rgb = waypoint.draw_waypoints(im_rgb, render_dict['gt_waypoint'], render_dict['world_2_camera'], 100, COLOR_RED)
+        #im_rgb = waypoint.draw_waypoints(im_rgb, render_dict['pred_waypoint'], render_dict['world_2_camera'], 100, COLOR_BLUE)
 
         h = im_birdview.shape[0]
         h_rgb, w_rgb = im_rgb.shape[0:2]
@@ -214,11 +225,12 @@ class CilrsWrapper():
 
         im[:h, w:w+h] = im_birdview
 
-        action_str = np.array2string(render_dict['action'], precision=2, separator=',', suppress_small=True)
+        action_control_str = np.array2string(render_dict['action_control'], precision=2, separator=',', suppress_small=True)
+        action_trajectory_str = np.array2string(np.array(render_dict['action_trajectory']), precision=2, separator=',', suppress_small=True)
         state_str = np.array2string(render_dict['policy_input']['state'].numpy(),
                                     precision=2, separator=',', suppress_small=True)
 
-        txt_1 = f'a{action_str} pre_v:{render_dict["pred_speed"]:5.2f}'
+        txt_1 = f'a_control:{action_control_str} a_trajectory:{action_trajectory_str} pre_v:{render_dict["pred_speed"]:5.2f}'
         im = cv2.putText(im, txt_1, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt_2 = f'cmd: {render_dict["command"][0]} s{state_str}'
         im = cv2.putText(im, txt_2, (w, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
@@ -314,11 +326,11 @@ class CilrsWrapper():
 
 
     @staticmethod
-    def draw_waypoint(render_dict):
+    def draw_waypoint(render_dict, waypoint_type, color):
         birdview_cfg = render_dict['obs_configs']['birdview']
         rendered_birdview = render_dict['birdview']
 
-        for i, loc in enumerate(render_dict['pred_waypoint']):
+        for i, loc in enumerate(render_dict[waypoint_type]):
             x = int(np.round(birdview_cfg['width_in_pixels']/2 + loc[1]*birdview_cfg['pixels_per_meter']))
             y = int(np.round(birdview_cfg['width_in_pixels'] - birdview_cfg['pixels_ev_to_bottom']
                              - loc[0] * birdview_cfg['pixels_per_meter']))
@@ -330,31 +342,32 @@ class CilrsWrapper():
             # LANEFOLLOW = 4
             # CHANGELANELEFT = 5
             # CHANGELANERIGHT = 6
-            cmd = render_dict['route_plan']['command'][i]
+            # cmd = render_dict['route_plan']['command'][i]
 
-            if cmd == 1:
-                # LEFT = 1
-                color = COLOR_RED
-            elif cmd == 2:
-                # RIGHT = 2
-                color = COLOR_GREEN
-            elif cmd == 3:
-                # STRAIGHT = 3
-                color = COLOR_ORANGE_0
-            elif cmd == 4:
-                # LANEFOLLOW = 4
-                color = COLOR_WHITE
-            elif cmd == 5:
-                # CHANGELANELEFT = 5
-                color = COLOR_YELLOW
-            elif cmd == 6:
-                # CHANGELANERIGHT = 6
-                color = COLOR_BLUE
-            elif cmd == -1:
-                # VOID = -1
-                color = COLOR_BLACK
-            else:
-                print('error!!!!', cmd)
+            # if cmd == 1:
+            #     # LEFT = 1
+            #     color = COLOR_RED
+            # elif cmd == 2:
+            #     # RIGHT = 2
+            #     color = COLOR_GREEN
+            # elif cmd == 3:
+            #     # STRAIGHT = 3
+            #     color = COLOR_ORANGE_0
+            # elif cmd == 4:
+            #     # LANEFOLLOW = 4
+            #     color = COLOR_WHITE
+            # elif cmd == 5:
+            #     # CHANGELANELEFT = 5
+            #     color = COLOR_YELLOW
+            # elif cmd == 6:
+            #     # CHANGELANERIGHT = 6
+            #     color = COLOR_BLUE
+            # elif cmd == -1:
+            #     # VOID = -1
+            #     color = COLOR_BLACK
+            # else:
+            #     print('error!!!!', cmd)
             cv2.circle(rendered_birdview, (x, y), 3, color, -1)
 
         return rendered_birdview
+

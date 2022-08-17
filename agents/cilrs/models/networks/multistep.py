@@ -140,7 +140,7 @@ class MultiStepWaypoint(nn.Module):
 
 		# TODO: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
 
-	def forward(self, j):
+	def forward(self, j, target_waypoint = None):
 		
 		waypoint_vector = []
 		j_vector = []
@@ -159,14 +159,22 @@ class MultiStepWaypoint(nn.Module):
 		#waypoint_vector.append(waypoint)
 
 		for _ in range(self.number_of_steps):
-			
-			x_in = torch.cat([waypoint, j], dim = 1)
+
+			if target_waypoint is not None:
+
+				x_in = torch.cat([waypoint, target_waypoint], dim = 1)
+
+			else:
+
+				x_in = torch.cat([waypoint, j], dim = 1)
 
 			h = self.recurrent_cell(x_in, h)
 
-			j = self.encoder(h)
+			#j = self.encoder(h)
 
-			waypoint = self.policy_head_waypoint(j)[0]
+			delta_waypoint = self.policy_head_waypoint(h)[0]
+
+			waypoint = waypoint + delta_waypoint
 
 			waypoint_vector.append(waypoint)
 

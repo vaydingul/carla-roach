@@ -116,14 +116,18 @@ class CilrsAgent():
         actions_control, actions_trajectory, pred_speed, pred_waypoint = self._policy.forward_branch(command, im = policy_input['im'], state = policy_input['state'])
         
         control = self._env_wrapper.process_act_control(actions_control)
-        control = self._env_wrapper.process_act_trajectory(actions_trajectory)
+        #control = self._env_wrapper.process_act_trajectory(actions_trajectory)
 
         self._render_dict = {
             'policy_input': policy_input,
             'command': command,
-            'action': actions_control,
+            'action_control': actions_control,
+            'action_trajectory': actions_trajectory,
             'pred_speed': pred_speed,
+            'gt_waypoint': policy_input['waypoint_locations'],
             'pred_waypoint': pred_waypoint,
+            'world_2_camera': policy_input['world_2_camera'],
+            'camera_2_world': policy_input['camera_2_world'],
             'obs_configs': self._obs_configs,
             'birdview': input_data['birdview']['rendered'],
             'route_plan': input_data['route_plan'],
