@@ -264,7 +264,7 @@ class CoILICRA(nn.Module):
         
         
         pred_mu, pred_sigma, pred_j = self.multi_step_control(j)
-        pred_waypoint = self.multi_step_waypoint(j, state[:, 1:3])
+        pred_waypoint = self.multi_step_waypoint(j, state[:, 1:3]) # Target waypoint is also fed
 
         if self.action_distribution is None:
             #outputs['action_branches'] = self.branches(j)

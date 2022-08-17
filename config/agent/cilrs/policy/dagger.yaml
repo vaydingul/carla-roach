@@ -8,7 +8,7 @@ kwargs:
   use_multi_step_waypoint: true
   initial_hidden_zeros: true
   perception_output_neurons: 1000
-  measurements_neurons: [128, 128]
+  measurements_neurons: [128, 256]
   measurements_dropouts: [0.0, 0.0]
   join_neurons: [512, 512, 256]
   join_dropouts: [0.0, 0.0, 0.0]

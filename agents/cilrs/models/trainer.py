@@ -92,9 +92,13 @@ class Trainer():
         self._ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     def get_lr_scheduler(self):
-        return optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', min_lr=1e-7,
-                                                    factor=self.lr_schedule_factor,
-                                                    patience=5)
+        # return optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', min_lr=1e-7,
+        #                                             factor=self.lr_schedule_factor,
+        #                                             patience=5)
+
+        return optim.lr_scheduler.StepLR(self.optimizer, step_size = 30, gamma = self.lr_schedule_factor)
+
+        
 
     def learn(self, dataset_dir, train_epochs, env_wrapper, reset_step=False):
         if reset_step:
