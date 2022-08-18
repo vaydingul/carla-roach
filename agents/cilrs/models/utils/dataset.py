@@ -23,7 +23,7 @@ class CilrsDataset(Dataset):
 
         if env_wrapper.view_augmentation:
             self._obs_keys_to_load = ['speed', 'gnss',
-                                      'central_rgb', 'left_rgb', 'right_rgb', 'ego_vehicle_route'']
+                                      'central_rgb', 'left_rgb', 'right_rgb', 'ego_vehicle_route']
         else:
             self._obs_keys_to_load = ['speed', 'gnss', 'central_rgb', 'ego_vehicle_route']
 
