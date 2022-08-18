@@ -50,10 +50,6 @@ class Trainer():
         self.number_of_steps_waypoint= policy.number_of_steps_waypoint
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
-        
-        batch_size = 80
-        num_workers = 8
-
 
         # kwargs for dataloader
         self.batch_size = batch_size * self.num_gpus

@@ -89,7 +89,7 @@ class CoILICRA(nn.Module):
                                  FC(params={'neurons':
                                             [measurements_neurons[-1] + perception_output_neurons] + join_neurons,
                                             'dropouts': join_dropouts,
-                                            'end_layer': nn.ReLU}),
+                                            'end_layer': None}),
                                  'mode': 'cat'})
 
         if squash_outputs:
@@ -217,7 +217,7 @@ class CoILICRA(nn.Module):
 
             self.multi_step_waypoint = MultiStepWaypoint(params={
             'recurrent_cell': nn.GRUCell,
-            'input_size' : 2 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
+            'input_size' : 2 + 2,#join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
             'hidden_size' : join_neurons[-1],
             'encoder' : FC(params = {
                 'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],

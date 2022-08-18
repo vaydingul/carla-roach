@@ -117,7 +117,7 @@ class BranchedLoss():
         return action_loss * self.action_loss_weight,\
             speed_loss * self.speed_weight,\
             value_loss * self.value_weight,\
-            feature_loss * self.features_weight * self.action_loss_weight,\
+            feature_loss * self.features_weight * (self.action_loss_weight if self.action_loss_weight > 0 else 1),\
             trajectory_loss * self.trajectory_weight
 
     @staticmethod
