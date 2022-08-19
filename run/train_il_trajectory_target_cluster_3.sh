@@ -24,7 +24,7 @@
 
 train_il () {
 
-python -u train_il.py reset_step=false \
+python -u train_il.py reset_step=true \
 wb_project="il_leaderboard_roach" wb_group="train_trajectory_with_target_waypoint" 'wb_name="Trajectory Branch - Temporal Module"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
