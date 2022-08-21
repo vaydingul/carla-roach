@@ -3,13 +3,14 @@ from gym import spaces
 
 from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 import carla_gym.utils.transforms as trans_utils
+import carla
 
 
 class ObsManager(ObsManagerBase):
 
     def __init__(self, obs_configs):
         self._parent_actor = None
-        self._route_steps = 5
+        self._route_steps = 20
         super(ObsManager, self).__init__()
 
     def _define_obs_space(self):
@@ -23,8 +24,12 @@ class ObsManager(ObsManagerBase):
     def attach_ego_vehicle(self, parent_actor):
         self._parent_actor = parent_actor
 
-    def get_observation(self):
+    def get_observation(self):     
+        _map = self._parent_actor._map
+
+
         ev_transform = self._parent_actor.vehicle.get_transform()
+        ev_wp = _map.get_waypoint(ev_transform.location, project_to_road=True, lane_type = carla.LaneType.Driving)
         route_plan = self._parent_actor.route_plan
 
         # lateral_dist
@@ -66,7 +71,10 @@ class ObsManager(ObsManagerBase):
             'angle_diff': np.array([angle_diff], dtype=np.float32),
             'route_locs': np.array(location_list, dtype=np.float32),
             'dist_remaining': np.array([dist_remaining_in_km], dtype=np.float32),
-            'wp_locs': np.array(wp_location_list_world, dtype=np.float32)
+            'wp_locs': np.array(wp_location_list_world, dtype=np.float32),
+            'ev_wp': np.array([ev_wp.transform.location.x, ev_wp.transform.location.y, ev_wp.transform.location.z], dtype=np.float32),
+            'ev_transform': np.array(ev_transform.get_matrix(), dtype=np.float32),
+            'ev_transform_inverse': np.array(ev_transform.get_inverse_matrix(), dtype=np.float32) 
         }
         return obs
 

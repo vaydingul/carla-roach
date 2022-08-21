@@ -106,7 +106,7 @@ class Trainer():
             self.scheduler = self.get_lr_scheduler()
 
         train_dataset, val_dataset = get_dataloader(dataset_dir, env_wrapper,
-                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps_control)
+                                                    self.im_augmentation, self.batch_size, self.num_workers, self.number_of_steps_control, self.number_of_steps_waypoint)
         
         log.info(f'Train dataloader size: {len(train_dataset)}')
         log.info(f'Val dataloader size: {len(val_dataset)}')
@@ -175,6 +175,7 @@ class Trainer():
     def _train(self, dataset):
         self.policy = self.policy.train()
         t_data_read = time.time()
+        
         for command, policy_input, supervision in dataset:
         
             
@@ -191,7 +192,10 @@ class Trainer():
             self.optimizer.zero_grad()
             outputs = self.policy.forward(policy_input['im'], policy_input['state'])
 
-            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_locations'])
+            #log.info(f"Predicted Waypoint Size {outputs['pred_waypoint'].size()}")
+            #log.info(f"Actual Waypoint Size {policy_input['waypoint_location_ev'].size()}")
+
+            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_location_ev'])
             loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
             loss.backward()
             self.optimizer.step()
@@ -231,7 +235,7 @@ class Trainer():
             with th.no_grad():
                 outputs = self.policy.forward(policy_input['im'], policy_input['state'])
                 action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(
-                    outputs, supervision, command, policy_input['waypoint_locations'])
+                    outputs, supervision, command, policy_input['waypoint_location_ev'])
                 loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
                 losses.append(loss.item())
                 action_losses.append(action_loss.item())

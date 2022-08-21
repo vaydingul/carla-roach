@@ -22,18 +22,28 @@ K[1, 1] = FOCAL
 K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
-OFFSET = 10
-STEP = 4
+OFFSET = 1
+STEP = 4  # 4
 STRIDE = 1
 
 THICKNESS_MAX = 5
-THICKNESS_MIN = 5
+THICKNESS_MIN = 1
 
 COLOR_MAX = 255
 COLOR_MIN = 50
 
 
 EARTH_RADIUS_EQUA = 6378137.0
+
+def world_2_ev(world_point, world_2_ev):
+
+    world_point_ = np.ones((4, ))
+    world_point_[:3] = world_point
+
+    # Transform the points from world space to camera space.
+    ev_point = np.dot(world_2_ev, world_point_)
+
+    return ev_point[:-1]
 
 
 def gnss_2_world(gps):
@@ -82,9 +92,9 @@ def world_2_pixel(world_point, world_2_camera):
         sensor_points[1],
         sensor_points[2] * -1,
         sensor_points[0]])
-
-    print(point_in_camera_coords)
-
+    #print(point_in_camera_coords[2])
+    point_in_camera_coords[0] -= 0
+    point_in_camera_coords[1] -= 1.7
     #point_in_camera_coords[1] -= 1
     #point_in_camera_coords[2] += 5
     # Finally we can use our K matrix to do the actual 3D -> 2D.
@@ -95,6 +105,7 @@ def world_2_pixel(world_point, world_2_camera):
         points_2d[0] / points_2d[2],
         points_2d[1] / points_2d[2],
         points_2d[2]])
+
 
     # At this point, points_2d[0, :] contains all the x and points_2d[1, :]
     # contains all the y values of our points. In order to properly
@@ -119,7 +130,7 @@ def main(dataset_path, episode):
     video = VideoWriter('./wp-ground-truth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
-    while i < 3000:
+    while i < 5:
 
         # Read the data
         try:
@@ -130,16 +141,26 @@ def main(dataset_path, episode):
 
         camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
         world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
-        wp_locs = f[f'step_{int(i+20)}/obs/ego_vehicle_route/wp_locs'][()]
-
+        ev_transform = f[f'step_{int(i)}/obs/ego_vehicle_route/ev_transform'][()]
+        ev_transform_inverse = f[f'step_{int(i)}/obs/ego_vehicle_route/ev_transform_inverse'][()]
         
 
         waypoints = []
-        print(wp_locs.shape)
-        for k in range(wp_locs.shape[0]):
+        print(i)
+        for k in range(i + OFFSET, i + OFFSET + STEP * STRIDE, STRIDE):
 
-            pixel_point = world_2_pixel(wp_locs[k, :], world_2_camera)
+            wp_loc = f[f'step_{int(k)}/obs/ego_vehicle_route/ev_wp'][()]
+            
+
+            wp_loc_ev = world_2_ev(wp_loc, ev_transform_inverse)
+            
+            print(wp_loc)
+            print(wp_loc_ev)
+        
+            pixel_point = world_2_pixel(wp_loc, world_2_camera)
             waypoints.append(pixel_point)
+        
+        print(ev_transform_inverse)
 
         thickness = np.linspace(
             THICKNESS_MIN, THICKNESS_MAX, len(waypoints))[::-1]
@@ -170,6 +191,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul/Documents/Codes/1-episode/expert/'
-    episode = 0
+    dataset_path = '/home/vaydingul/Documents/Codes/4-episode/expert/'
+    episode = 1
     main(dataset_path, episode)

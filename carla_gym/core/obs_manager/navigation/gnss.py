@@ -38,6 +38,8 @@ class ObsManager(ObsManagerBase):
 
     def attach_ego_vehicle(self, parent_actor):
         self._world = parent_actor.vehicle.get_world()
+        self._map = self._world.get_map()
+        
         self._parent_actor = parent_actor
         self._idx = -1
         self._gnss_queue = Queue()

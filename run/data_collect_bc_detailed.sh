@@ -4,10 +4,10 @@
 data_collect () {
   python -u data_collect.py resume=true log_video=false save_to_wandb=false \
   wb_project=il_leaderboard_roach \
-  wb_group=detailed_data \
-  test_suites=lb_data_6 \
-  n_episodes=40 \
-  dataset_root=/home/vaydingul20/Documents/Codes/dataset-detailed-3 \
+  wb_group=1_episode \
+  test_suites=lb_data \
+  n_episodes=4 \
+  dataset_root=/home/vaydingul/Documents/Codes/4-episode\
   actors.hero.driver=ppo \
   agent.ppo.wb_run_path=iccv21-roach/trained-models/1929isj0 \
   agent.ppo.wb_ckpt_step=null \

@@ -124,7 +124,7 @@ class CilrsAgent():
             'action_control': actions_control,
             'action_trajectory': actions_trajectory,
             'pred_speed': pred_speed,
-            'gt_waypoint': policy_input['waypoint_locations'],
+            'gt_waypoint': policy_input['waypoint_location'],
             'pred_waypoint': pred_waypoint,
             'world_2_camera': policy_input['world_2_camera'],
             'camera_2_world': policy_input['camera_2_world'],

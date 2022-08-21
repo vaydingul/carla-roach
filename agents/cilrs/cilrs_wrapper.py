@@ -93,21 +93,31 @@ class CilrsWrapper():
             im_list.append(im)
 
         # Waypoint ground-truth generation w.r.t. the ego-vehicle coordinate frame
-        waypoint_locations = obs['ego_vehicle_route']['route_locs']
-        waypoint_locations_world_frame = obs['ego_vehicle_route']['wp_locs']
+        #waypoint_locations = obs['ego_vehicle_route']['route_locs']
+        #waypoint_locations_world_frame = obs['ego_vehicle_route']['wp_locs']
         world_2_camera = obs['central_rgb'][0]['world_2_camera']
         camera_2_world = obs['central_rgb'][0]['camera_2_world']
 
+        #log.info(f"Ego Vehicle Route Keys: {obs['ego_vehicle_route'].keys()}")
+        #for key in obs['ego_vehicle_route'].keys():
+        #    log.info(f"{key} Size: {obs['ego_vehicle_route'][key].shape}")
         
-        
+
+        ev_transform = obs['ego_vehicle_route']['ev_transform']
+        ev_transform_inverse = obs['ego_vehicle_route']['ev_transform_inverse']
+        waypoint_world_location = obs['ego_vehicle_route']['ev_wp']
+
+        # 'waypoint_locations': th.tensor(waypoint_locations, dtype=th.float32),
+        # 'waypoint_locations_world_frame': th.tensor(waypoint_locations_world_frame, dtype=th.float32),
         
         policy_input = {
             'im': th.stack(im_list, dim=1),
             'state': th.tensor(state_list, dtype=th.float32),
-            'waypoint_locations': th.tensor(waypoint_locations, dtype=th.float32),
-            'waypoint_locations_world_frame': th.tensor(waypoint_locations_world_frame, dtype=th.float32),
             'world_2_camera': th.tensor(world_2_camera, dtype=th.float32),
-            'camera_2_world': th.tensor(camera_2_world, dtype=th.float32)
+            'camera_2_world': th.tensor(camera_2_world, dtype=th.float32),
+            'ev_transform': th.tensor(ev_transform, dtype=th.float32),
+            'ev_transform_inverse': th.tensor(ev_transform_inverse, dtype=th.float64),
+            'waypoint_location': th.tensor(waypoint_world_location, dtype=th.float64)
         }
         return policy_input, th.tensor([command], dtype=th.int8)
 

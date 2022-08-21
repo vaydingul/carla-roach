@@ -5,27 +5,29 @@ import numpy as np
 import logging
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
-
+from agents.cilrs.models.utils import waypoint
 
 from . import augmenter
-
+torch.set_printoptions(precision=8)
 log = logging.getLogger(__name__)
 
 
 class CilrsDataset(Dataset):
-    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps_control=0):
+    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps_control=0, number_of_steps_waypoint = 4):
 
         self._env_wrapper = env_wrapper
         self._im_augmenter = im_augmenter
         self._batch_read_number = 0
         self._im_stack_idx = env_wrapper.im_stack_idx
-        self.number_of_steps = number_of_steps_control
-
+        self.number_of_steps_control = number_of_steps_control
+        self.number_of_steps_waypoint = number_of_steps_waypoint
+        self.frame_map = {}
         if env_wrapper.view_augmentation:
             self._obs_keys_to_load = ['speed', 'gnss',
                                       'central_rgb', 'left_rgb', 'right_rgb', 'ego_vehicle_route']
         else:
-            self._obs_keys_to_load = ['speed', 'gnss', 'central_rgb', 'ego_vehicle_route']
+            self._obs_keys_to_load = ['speed', 'gnss',
+                                      'central_rgb', 'ego_vehicle_route']
 
         self._obs_list = []
         self._supervision_list = []
@@ -39,11 +41,14 @@ class CilrsDataset(Dataset):
         for h5_path in list_h5:
             log.info(f'Loading: {h5_path}')
             with h5py.File(h5_path, 'r', libver='latest', swmr=True) as hf:
-                for step_str, group_step in hf.items():
+                for step_str, group_step in sorted(hf.items(), key = lambda x: int(x[0].split('_')[-1])):
                     if group_step.attrs['critical']:
                         current_step = int(step_str.split('_')[-1])
+                        #log.info(f"im_stack_idx: {self._im_stack_idx}")
                         im_stack_idx_list = [
                             max(0, current_step+i+1) for i in self._im_stack_idx]
+                        
+                        #log.info(f"im_stack_idx_list: {im_stack_idx_list}")
 
                         obs_dict = {}
                         for obs_key in self._obs_keys_to_load:
@@ -77,28 +82,43 @@ class CilrsDataset(Dataset):
         return data_dict
 
     def __len__(self):
-        return len(self._obs_list) - self.number_of_steps
+        return len(self._obs_list) - max(self.number_of_steps_control, self.number_of_steps_waypoint)
 
     def __getitem__(self, index: int):
 
+        if (index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) % 1000  < max(self.number_of_steps_control, self.number_of_steps_waypoint):
+
+            index = ((index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) // 1000) * 1000
+
+            
         supervision_vec = []
+        policy_input_vec = []
 
         supervision_ = {}
 
         command, policy_input, supervision = self._getitem(index)
+        
         # command_vec.append(command)
         # policy_input_vec.append(policy_input)
         supervision_vec.append(supervision)
+        # policy_input_vec.append(policy_input)
 
-        for ix in range(index + 1, index + self.number_of_steps + 1):
+        ev_transform_inverse = policy_input['ev_transform_inverse']
 
-            _, _, supervision = self._getitem(ix)
+        for ix in range(index + 1, index + max(self.number_of_steps_control, self.number_of_steps_waypoint) + 1):
+
+            _, policy_input_, supervision = self._getitem(ix)
             supervision_vec.append(supervision)
+
+            waypoint_ev_frame = waypoint.world_2_ev(policy_input_['waypoint_location'], ev_transform_inverse)
+            policy_input_vec.append(waypoint_ev_frame)
+
 
         for k in supervision_vec[0].keys():
             supervision_[k] = torch.stack(
                 [supervision[k] for supervision in supervision_vec], dim=0)
 
+        policy_input['waypoint_location_ev'] = torch.stack(policy_input_vec, dim=0)
         return command, policy_input, supervision_
 
     def _getitem(self, idx):
@@ -140,7 +160,7 @@ class CilrsDataset(Dataset):
         return command, policy_input, supervision
 
 
-def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps=0):
+def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps_control = 0, number_of_steps_waypoint = 4):
 
     def make_dataset(list_expert_h5, list_dagger_h5, is_train):
 
@@ -150,9 +170,9 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
             im_augmenter = None
 
         dataset = CilrsDataset(
-            list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps)
+            list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps_control, number_of_steps_waypoint)
         dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
-                                shuffle=True, drop_last=True, pin_memory=False)
+                                shuffle=True, drop_last=True, pin_memory=True)
         return dataloader, dataset.expert_frames, dataset.dagger_frames
 
     dataset_path = Path(dataset_dir)
@@ -188,4 +208,3 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
              f'expert hours: {val_expert_frames/10/3600:.2f}, DAGGER hours: {val_dagger_frames/10/3600:.2f}.')
 
     return train, val
-

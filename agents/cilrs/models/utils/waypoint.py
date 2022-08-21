@@ -8,18 +8,26 @@ import math
 import cv2
 from cv2 import VideoWriter, VideoWriter_fourcc
 import time
-
+import torch
 FOV = 100
 WIDTH = 900
 HEIGHTH = 256
 FOCAL = WIDTH / (2.0 * np.tan(FOV * np.pi / 360.0))
 
-OFFSET = 10
-STEP = 200  # 4
+FPS = 20
+
+K = np.identity(3)
+K[0, 0] = FOCAL
+K[1, 1] = FOCAL
+K[0, 2] = WIDTH / 2.0
+K[1, 2] = HEIGHTH / 2.0
+
+OFFSET = 0
+STEP = 4  # 4
 STRIDE = 1
 
 THICKNESS_MAX = 5
-THICKNESS_MIN = 5
+THICKNESS_MIN = 1
 
 COLOR_MAX = 255
 COLOR_MIN = 50
@@ -27,18 +35,32 @@ COLOR_MIN = 50
 
 EARTH_RADIUS_EQUA = 6378137.0
 
-def calculate_intrinsic_matrix(fov = FOV, width = WIDTH, height = HEIGHTH):
-    """
-    Calculate the intrinsic matrix K.
-    """
 
-    focal = width / (2.0 * np.tan(fov * np.pi / 360.0))
-    K = np.identity(3)
-    K[0, 0] = focal
-    K[1, 1] = focal
-    K[0, 2] = width / 2.0
-    K[1, 2] = height / 2.0
-    return K
+def world_2_ev(world_point, world_2_ev):
+
+    world_point_ = torch.ones((4,), dtype=torch.float64)
+    world_point_[:3] = world_point
+
+    world_point_ = world_point_.unsqueeze(1)
+    # Transform the points from world space to camera space.
+    ev_point = torch.matmul(world_2_ev, world_point_)
+    ev_point = ev_point.squeeze(1)
+    return ev_point[:2].float()
+
+
+def gnss_2_world(gps):
+
+    lat, lon, z = gps
+    lat = float(lat)
+    lon = float(lon)
+    z = float(z)
+
+    x = lon / 180.0 * (math.pi * EARTH_RADIUS_EQUA)
+
+    y = -1.0 * math.log(math.tan((lat + 90.0) * math.pi /
+                                 360.0)) * EARTH_RADIUS_EQUA
+
+    return np.array([x, y, z])
 
 
 def world_2_pixel(world_point, world_2_camera):
@@ -72,9 +94,11 @@ def world_2_pixel(world_point, world_2_camera):
         sensor_points[1],
         sensor_points[2] * -1,
         sensor_points[0]])
-
-    #point_in_camera_coords[1] -= 1
-    #point_in_camera_coords[2] += 5
+    # print(point_in_camera_coords[2])
+    point_in_camera_coords[0] -= 0
+    point_in_camera_coords[1] -= 1.7
+    # point_in_camera_coords[1] -= 1
+    # point_in_camera_coords[2] += 5
     # Finally we can use our K matrix to do the actual 3D -> 2D.
     points_2d = K @ point_in_camera_coords
 
@@ -97,83 +121,70 @@ def world_2_pixel(world_point, world_2_camera):
 
     return pixel_points
 
-def draw_waypoints(img, waypoints, world_2_camera, fov, color):
 
-    height = img.shape[0]
-    width = img.shape[1]
+def main(dataset_path, episode):
 
-    K = calculate_intrinsic_matrix(fov = fov, width = width, height = height)
+    h5_file = os.path.join(dataset_path, f'{episode:04}.h5')
+    f = h5py.File(h5_file, 'r')
 
-    waypoints_list = []
-    for waypoint in waypoints:
+    fourcc = VideoWriter_fourcc(*'mp4v')
+    video=VideoWriter('./wp-ground-truth.mp4', fourcc,
+                      float(FPS), (WIDTH//2, HEIGHTH//2))
 
-        pixel_point = world_2_pixel(waypoint, world_2_camera)
-        waypoints_list.append(pixel_point)
+    i=0
+    while i < 3000:
 
-    for (ix, waypoint) in enumerate(waypoints_list):
+        # Read the data
+        try:
+            img=f[f'step_{int(i)}/obs/central_rgb/data'][()]
+        except KeyError:
+            break
+        img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        if waypoint.shape[0] > 0:
-            waypoint = waypoint.squeeze()
-            img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), 5, color, -1)
-
-    return img
-
+        camera_2_world=f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
+        world_2_camera=f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
+        ev_transform=f[f'step_{int(i)}/obs/ego_vehicle_route/ev_transform'][()]
+        ev_transform_inverse=f[f'step_{int(i)}/obs/ego_vehicle_route/ev_transform_inverse'][()]
 
 
+        waypoints=[]
 
-# def main(dataset_path, episode):
+        for k in range(i + OFFSET, i + OFFSET + STEP * STRIDE, STRIDE):
 
-#     h5_file = os.path.join(dataset_path, f'{episode:04}.h5')
-#     f = h5py.File(h5_file, 'r')
+            wp_loc=f[f'step_{int(k)}/obs/ego_vehicle_route/ev_wp'][()]
+            print(world_2_ev(wp_loc, ev_transform_inverse))
+            pixel_point=world_2_pixel(wp_loc, world_2_camera)
+            waypoints.append(pixel_point)
 
-#     fourcc = VideoWriter_fourcc(*'mp4v')
-#     video = VideoWriter('./wp-ground-truth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
+        thickness=np.linspace(
+            THICKNESS_MIN, THICKNESS_MAX, len(waypoints))[::-1]
+        color=np.linspace(COLOR_MIN, COLOR_MAX, len(waypoints))[::-1]
 
-#     i = 0
-#     while i < 3000:
+        for (ix, waypoint) in enumerate(waypoints):
 
-#         # Read the data
-#         try:
-#             img = f[f'step_{int(i)}/obs/central_rgb/data'][()]
-#         except KeyError:
-#             break
-#         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            if waypoint.shape[0] > 0:
+                waypoint=waypoint.squeeze()
+                img=cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(
+                    thickness[ix]), (0, 0, int(color[ix])), -1)
 
-#         camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
-#         world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
-#         wp_locs = f[f'step_{int(i+10)}/obs/ego_vehicle_route/wp_locs'][()]
+        cv2.imshow('Waypoint Animation', img)
 
-        
+        if cv2.waitKey(1) == ord('q'):
 
-#         waypoints = []
-#         print(wp_locs.shape)
-#         for k in range(wp_locs.shape[0]):
+            # press q to terminate the loop
+            cv2.destroyAllWindows()
+            break
 
-#             pixel_point = world_2_pixel(wp_locs[k, :], world_2_camera)
-#             waypoints.append(pixel_point)
+        video.write(cv2.resize(img, (WIDTH//2, HEIGHTH//2)))
+        time.sleep(0.01)
+        i += 1
 
-#         thickness = np.linspace(
-#             THICKNESS_MIN, THICKNESS_MAX, len(waypoints))[::-1]
-#         color = np.linspace(COLOR_MIN, COLOR_MAX, len(waypoints))[::-1]
+    video.release()
 
-#         for (ix, waypoint) in enumerate(waypoints):
 
-#             if waypoint.shape[0] > 0:
-#                 waypoint = waypoint.squeeze()
-#                 img = cv2.circle(img, (int(waypoint[0]), int(waypoint[1])), int(
-#                     thickness[ix]), (0, 0, int(color[ix])), -1)
+if __name__ == '__main__':
 
-#         cv2.imshow('Waypoint Animation', img)
-
-#         if cv2.waitKey(1) == ord('q'):
-
-#             # press q to terminate the loop
-#             cv2.destroyAllWindows()
-#             break
-
-#         video.write(cv2.resize(img, (WIDTH//2, HEIGHTH//2)))
-#         time.sleep(0.01)
-#         i += 1
-
-#     video.release()
-
+    # Fetch the h5 files
+    dataset_path='/home/vaydingul/Documents/Codes/4-episode/expert/'
+    episode=0
+    main(dataset_path, episode)
