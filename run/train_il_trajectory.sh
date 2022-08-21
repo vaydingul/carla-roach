@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="script test" 'wb_name="Trajectory Branch - No Control Branch"' \
+wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Trajectory Branch - No Control Branch"' \
 dagger_datasets=["/home/vaydingul/Documents/Codes/4-episode/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
