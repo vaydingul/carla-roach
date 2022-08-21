@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="Cluster Test" 'wb_name="Trajectory Branch - Temporal Module"' \
+wb_project="il_leaderboard_roach" wb_group="Cluster Test" 'wb_name="Trajectory Branch - No Control Branch"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed-small/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
@@ -37,8 +37,8 @@ agent.cilrs.env_wrapper.kwargs.value_as_supervision=true \
 agent.cilrs.training.kwargs.value_weight=0.001 \
 agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
 agent.cilrs.training.kwargs.features_weight=0.05 \
-agent.cilrs.training.kwargs.action_loss_weight=0.5 \
-agent.cilrs.training.kwargs.trajectory_weight=0.5 \
+agent.cilrs.training.kwargs.action_loss_weight=0.0 \
+agent.cilrs.training.kwargs.trajectory_weight=1.0 \
 agent.cilrs.training.kwargs.batch_size=192 \
 agent.cilrs.training.kwargs.num_workers=4 \
 agent.cilrs.policy.kwargs.use_multi_step_control=false \
