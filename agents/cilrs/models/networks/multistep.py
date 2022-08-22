@@ -183,3 +183,173 @@ class MultiStepWaypoint(nn.Module):
 
 		return pred_waypoint
 
+class MultiStepControlCell(nn.Module):
+	"""Multi-step control branch implementation"""
+
+	def __init__(self, params = None):
+
+		super(MultiStepControlCell, self).__init__()
+
+		"""" ---------------------- MULTI-STEP ----------------------- """
+		if params is None:
+			raise ValueError("Creating a NULL MultiStep block")
+		
+		if 'recurrent_cell' not in params:
+			raise ValueError(" Missing the recurrent cell parameter ")
+
+		if 'input_size' not in params:
+			raise ValueError(" Missing the input size parameter ")
+
+		if 'hidden_size' not in params:
+			raise ValueError(" Missing the hidden size parameter ")
+
+		if 'encoder' not in params:
+			raise ValueError(" Missing the encoder parameter ")
+
+		if 'policy_head_mu' not in params:
+			raise ValueError(" Missing the policy head mu parameter ")
+
+		if 'policy_head_sigma' not in params:
+			raise ValueError(" Missing the policy head sigma parameter ")
+
+		if 'number_of_steps' not in params:
+			raise ValueError(" Missing the number of steps parameter ")
+
+		if 'initial_hidden_zeros' not in params:
+			raise ValueError(" Missing the initial hidden zeros parameter ")	
+
+		self.input_size = params['input_size']
+		self.hidden_size = params['hidden_size']
+		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
+
+		self.encoder = params['encoder']#nn.Linear(self.hidden_size, self.hidden_size)
+		self.policy_head_mu = params['policy_head_mu']#nn.Linear(self.hidden_size, self.input_size)
+		self.policy_head_sigma = params['policy_head_sigma']
+		self.number_of_steps = params['number_of_steps']
+
+		self.initial_hidden_zeros = params['initial_hidden_zeros']
+		# TODO: First hidden state is the feature extracted from the image and 
+		# the high level command module
+
+		# TODO: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
+
+	def forward(self,h, mu, sigma, j):
+		
+		# mu_vector = []
+		# sigma_vector = []
+		# j_vector = []
+
+		# if self.initial_hidden_zeros:
+			
+		# 	h = torch.zeros_like(j)
+		
+		# else:
+			
+		# 	h = j
+
+		# mu = self.policy_head_mu(j)[0]#torch.zeros((j.shape[0], 2), dtype = j.dtype)
+		# sigma = self.policy_head_sigma(j)[0]#torch.zeros((j.shape[0], 2), dtype = j.dtype)
+		
+		# mu_vector.append(mu)
+		# sigma_vector.append(sigma)
+		# j_vector.append(j)
+
+			
+		x_in = torch.cat([mu, sigma, j], dim = 1)
+
+		h = self.recurrent_cell(x_in, h)
+
+		j = self.encoder(h)
+
+		mu = self.policy_head_mu(j)[0]
+		sigma = self.policy_head_sigma(j)[0]
+
+		
+		return h, mu, sigma, j
+
+
+class MultiStepWaypointCell(nn.Module):
+	"""Multi-step control branch implementation"""
+
+	def __init__(self, params = None):
+
+		super(MultiStepWaypointCell, self).__init__()
+
+		"""" ---------------------- MULTI-STEP ----------------------- """
+		if params is None:
+			raise ValueError("Creating a NULL MultiStep block")
+		
+		if 'recurrent_cell' not in params:
+			raise ValueError(" Missing the recurrent cell parameter ")
+
+		if 'input_size' not in params:
+			raise ValueError(" Missing the input size parameter ")
+
+		if 'hidden_size' not in params:
+			raise ValueError(" Missing the hidden size parameter ")
+
+		if 'encoder' not in params:
+			raise ValueError(" Missing the encoder parameter ")
+
+		if 'policy_head_waypoint' not in params:
+			raise ValueError(" Missing the policy head waypoint parameter ")
+
+		if 'number_of_steps' not in params:
+			raise ValueError(" Missing the number of steps parameter ")
+
+		if 'initial_hidden_zeros' not in params:
+			raise ValueError(" Missing the initial hidden zeros parameter ")
+
+
+		self.input_size = params['input_size']
+		self.hidden_size = params['hidden_size']
+		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
+
+		self.encoder = params['encoder']#nn.Linear(self.hidden_size, self.hidden_size)
+		self.policy_head_waypoint = params['policy_head_waypoint']#nn.Linear(self.hidden_size, self.input_size)
+		self.number_of_steps = params['number_of_steps']
+
+		self.initial_hidden_zeros = params['initial_hidden_zeros']
+		# TODO: First hidden state is the feature extracted from the image and 
+		# the high level command module
+
+		# TODO: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
+
+	def forward(self, waypoint, j, target_waypoint = None):
+		
+		# waypoint_vector = []
+		# j_vector = []
+
+		# if self.initial_hidden_zeros:
+
+		# 	h = torch.zeros_like(j)
+
+		# else:
+	
+		# 	h = j
+
+		# # It should be (0, 0) for the first step
+		# waypoint = torch.zeros((j.shape[0], 2), dtype = j.dtype, device=j.device) # self.policy_head_waypoint(j)[0]
+		
+		#waypoint_vector.append(waypoint)
+
+	
+
+		if target_waypoint is not None:
+
+			x_in = torch.cat([waypoint, target_waypoint], dim = 1)
+
+		else:
+
+			x_in = torch.cat([waypoint, j], dim = 1)
+
+		h = self.recurrent_cell(x_in, h)
+
+		#j = self.encoder(h)
+
+		delta_waypoint = self.policy_head_waypoint(h)[0]
+
+		waypoint = waypoint + delta_waypoint
+
+		return h, waypoint
+

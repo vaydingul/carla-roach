@@ -104,6 +104,8 @@ class CoILICRA(nn.Module):
                                        'dropouts': speed_branch_dropouts + [0.0],
                                        'end_layer': end_layer_speed})
 
+
+
         # value branch
         self.value_as_supervision = value_as_supervision
         if value_as_supervision:
