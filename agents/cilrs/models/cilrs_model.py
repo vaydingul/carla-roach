@@ -279,7 +279,7 @@ class CoILICRA(nn.Module):
         
         return outputs
 
-    def forward_branch(self, command, im, state):
+    def forward_branch(self, command, im, state, waypoints = None):
 
         with th.no_grad():
             
@@ -303,9 +303,15 @@ class CoILICRA(nn.Module):
                 #log.info(f"Predicted Sigma Shape: {outputs['pred_sigma'].shape}")
                 #log.info(f"Predicted Waypoint Shape: {outputs['pred_waypoint'].shape}")
 
-                action_control = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
-                speed_error, angle_error = self._get_action_trajectory(outputs['pred_waypoint'], state_tensor[:, 0])
-                
+                if waypoints is None:
+
+                    action_control = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
+                    speed_error, angle_error = self._get_action_trajectory(outputs['pred_waypoint'], state_tensor[:, 0])
+
+                else:
+
+                    action_control = self._get_action_beta(outputs['pred_mu'][:, 0, :], outputs['pred_sigma'][:, 0, :])
+                    speed_error, angle_error = self._get_action_trajectory(waypoints, state_tensor[:, 0])
                 
                 #action = self.extract_branch(action)
 
@@ -315,7 +321,7 @@ class CoILICRA(nn.Module):
 
             action_control = action_control[0].cpu().numpy()
             
-            action_trajectory = speed_error[0].cpu().numpy() , angle_error[0].cpu().numpy()
+            action_trajectory = speed_error.item(), angle_error.item()
 
 
             #log.info(f"Action Control Shape: {action_control.shape}")
@@ -380,34 +386,33 @@ class CoILICRA(nn.Module):
     @staticmethod
     def _get_action_trajectory(waypoints, speed):
         
-        delta_waypoints = th.stack([waypoints[:,k+1,:] - waypoints[:,k,:] for k in range(waypoints.shape[1]-1)], dim=1)
-        
+        waypoints = waypoints.squeeze()
+
+        delta_waypoints = th.stack([waypoints[k+1,:] - waypoints[k,:] for k in range(waypoints.shape[0]-1)], dim=0)
+
         #log.info(f"Delta Waypoints Shape: {delta_waypoints.shape}")
 
         delta_waypoints_norm = delta_waypoints.norm(dim = -1)
         
         #log.info(f"Delta Waypoints Norm Shape: {delta_waypoints_norm.shape}")
-
         delta_waypoints_norm_mean = delta_waypoints_norm.mean(dim = -1)
 
         #log.info(f"Delta Waypoints Norm Mean Shape: {delta_waypoints_norm_mean.shape}")
 
-        delta_waypoints_angle = th.atan2(delta_waypoints[:,:,1], delta_waypoints[:,:,0])
+        delta_waypoints_angle = th.atan2(delta_waypoints[:,1], delta_waypoints[:,0])
 
         #log.info(f"Delta Waypoints Angle Shape: {delta_waypoints_angle.shape}")
 
         delta_waypoints_angle_mean = delta_waypoints_angle.mean(dim = -1)
 
         #log.info(f"Delta Waypoints Angle Mean Shape: {delta_waypoints_angle_mean.shape}")
-        
-        speed_error = speed - delta_waypoints_norm_mean * 10
-        
+
+        speed_error = delta_waypoints_norm_mean  - speed
+
         #log.info(f"Speed Error Shape: {speed_error.shape}")
 
         angle_error = delta_waypoints_angle_mean
-
         #log.info(f"Angle Error Shape: {angle_error.shape}")
-
 
         return speed_error, angle_error
 
