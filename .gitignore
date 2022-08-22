@@ -11,3 +11,4 @@ wandb/
 *.mp4
 .vscode/settings.json
 carla_gym/envs/__pycache__/__init__.cpython-37.pyc
+resnet_shape.txt

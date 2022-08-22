@@ -93,7 +93,8 @@ class ResNet(nn.Module):
             x = x.view(x.size(0), -1)
             n_flatten = x.shape[1]
         # print(n_flatten)
-        self.fc = nn.Linear(n_flatten, num_classes)
+        if not self.output_avg_pool:
+            self.fc = nn.Linear(n_flatten, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -207,6 +208,7 @@ def get_model(model_name, input_shape, num_classes, pretrained=False):
             model = resnet34_cilrs(input_shape, num_classes, pretrained=False)
 
     elif model_name == 'ResNet34TCP':
+        input_shape = [im_channels, im_h, im_w]
         if im_channels == 3:
             model = ResNet34TCP(input_shape, num_classes, pretrained=pretrained)
         else:

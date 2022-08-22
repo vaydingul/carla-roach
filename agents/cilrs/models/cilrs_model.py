@@ -247,6 +247,13 @@ class CoILICRA(nn.Module):
             im = im.view(b, c*t, h, w)
 
         """ ###### APPLY THE PERCEPTION MODULE """
+        all_layers = self.perception.get_layers_features(im)
+        for layer, layer_name in zip(all_layers, ["x0", "x1", "x2", "x3", "x4", "x5", "x"]):
+            
+            log.info(f"{layer_name} shape: {layer.shape}")
+        
+        exit()
+
         x = self.perception(im)
 
         """ ###### APPLY THE MEASUREMENT MODULE """
