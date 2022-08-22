@@ -21,7 +21,7 @@ class CilrsDataset(Dataset):
         self._im_stack_idx = env_wrapper.im_stack_idx
         self.number_of_steps_control = number_of_steps_control
         self.number_of_steps_waypoint = number_of_steps_waypoint
-        self.frame_map = {}
+        self.count_array = []
         if env_wrapper.view_augmentation:
             self._obs_keys_to_load = ['speed', 'gnss',
                                       'central_rgb', 'left_rgb', 'right_rgb', 'ego_vehicle_route']
@@ -69,6 +69,10 @@ class CilrsDataset(Dataset):
                         self._supervision_list.append(
                             self._env_wrapper.process_supervision(supervision_dict))
                         n_frames += 1
+
+            self.count_array.append(n_frames)
+        
+        self.count_array = np.array(self.count_array)
         return n_frames
 
     @staticmethod
@@ -86,11 +90,16 @@ class CilrsDataset(Dataset):
 
     def __getitem__(self, index: int):
 
-        if (index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) % 1000  < max(self.number_of_steps_control, self.number_of_steps_waypoint):
+        # if (index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) % 1000  < max(self.number_of_steps_control, self.number_of_steps_waypoint):
+        
+        #     index = ((index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) // 1000) * 1000
 
-            index = ((index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) // 1000) * 1000
+        step = max(self.number_of_steps_control, self.number_of_steps_waypoint)
 
-            
+        I, = np.nonzero(np.logical_and((((index + step) - self.count_array) >= 0) , (((index + step) - self.count_array) < step)))
+        
+        if I.size != 0: index = self.count_array[I[-1]]
+
         supervision_vec = []
         policy_input_vec = []
 

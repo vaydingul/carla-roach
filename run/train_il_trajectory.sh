@@ -26,7 +26,7 @@ train_il () {
 
 python -u train_il.py reset_step=false \
 wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Trajectory Branch - No Control Branch"' \
-dagger_datasets=["/home/vaydingul/Documents/Codes/4-episode/"] \
+dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -40,7 +40,7 @@ agent.cilrs.training.kwargs.features_weight=0.05 \
 agent.cilrs.training.kwargs.action_loss_weight=0 \
 agent.cilrs.training.kwargs.trajectory_weight=1 \
 agent.cilrs.training.kwargs.batch_size=16 \
-agent.cilrs.training.kwargs.num_workers=0 \
+agent.cilrs.training.kwargs.num_workers=4 \
 agent.cilrs.policy.kwargs.use_multi_step_control=false \
 agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
 agent.cilrs.policy.kwargs.initial_hidden_zeros=false \
@@ -90,7 +90,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/home/vaydingul/Documents/Codes/4-episode/"
+CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
