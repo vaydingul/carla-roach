@@ -54,10 +54,11 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, input_shape, num_classes=1000):
+    def __init__(self, block, layers, input_shape, num_classes=1000, output_avg_pool = True):
 
         im_channels, im_h, im_w = input_shape
 
+        self.output_avg_pool = output_avg_pool
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv2d(im_channels, 64, kernel_size=7, stride=2, padding=3,
@@ -129,8 +130,10 @@ class ResNet(nn.Module):
         x4 = self.layer4(x3)
 
         x = self.avgpool(x4)
+
+        if self.output_avg_pool: return x
+
         x = x.view(x.size(0), -1)
-        # print ('in resnet: ', x.shape)
         x = self.fc(x)
 
         return x
@@ -173,6 +176,23 @@ def resnet34_cilrs(input_shape, num_classes, pretrained=False):
         model.load_state_dict(state)
     return model
 
+def ResNet34TCP(input_shape, num_classes, pretrained=True):
+    """Constructs a ResNet-34 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNet(BasicBlock, [3, 4, 6, 3], input_shape, num_classes, output_avg_pool=True)
+    if pretrained:
+        model_dict = model_zoo.load_url(model_urls['resnet34'])
+        # remove the fc layers
+        del model_dict['fc.weight']
+        del model_dict['fc.bias']
+        state = model.state_dict()
+        state.update(model_dict)
+        model.load_state_dict(state)
+    return model
+
 # MODEL FROM TORCH MODEL ZOO
 
 
@@ -185,6 +205,12 @@ def get_model(model_name, input_shape, num_classes, pretrained=False):
             model = resnet34_cilrs(input_shape, num_classes, pretrained=pretrained)
         else:
             model = resnet34_cilrs(input_shape, num_classes, pretrained=False)
+
+    elif model_name == 'ResNet34TCP':
+        if im_channels == 3:
+            model = ResNet34TCP(input_shape, num_classes, pretrained=pretrained)
+        else:
+            model = ResNet34TCP(input_shape, num_classes, pretrained=False)
     else:
         assert model_name in ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d',
                               'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2',
