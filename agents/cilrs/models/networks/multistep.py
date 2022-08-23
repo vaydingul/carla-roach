@@ -93,12 +93,12 @@ class MultiStepControl(nn.Module):
 		return pred_mu, pred_sigma, pred_j
 
 
-class MultiStepWaypoint(nn.Module):
+class MultiStepTrajectory(nn.Module):
 	"""Multi-step control branch implementation"""
 
 	def __init__(self, params = None):
 
-		super(MultiStepWaypoint, self).__init__()
+		super(MultiStepTrajectory, self).__init__()
 
 		"""" ---------------------- MULTI-STEP ----------------------- """
 		if params is None:
@@ -112,9 +112,6 @@ class MultiStepWaypoint(nn.Module):
 
 		if 'hidden_size' not in params:
 			raise ValueError(" Missing the hidden size parameter ")
-
-		if 'encoder' not in params:
-			raise ValueError(" Missing the encoder parameter ")
 
 		if 'policy_head_waypoint' not in params:
 			raise ValueError(" Missing the policy head waypoint parameter ")
@@ -130,7 +127,6 @@ class MultiStepWaypoint(nn.Module):
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
 
-		self.encoder = params['encoder']#nn.Linear(self.hidden_size, self.hidden_size)
 		self.policy_head_waypoint = params['policy_head_waypoint']#nn.Linear(self.hidden_size, self.input_size)
 		self.number_of_steps = params['number_of_steps']
 
@@ -143,7 +139,6 @@ class MultiStepWaypoint(nn.Module):
 	def forward(self, j, target_waypoint = None):
 		
 		waypoint_vector = []
-		j_vector = []
 
 		if self.initial_hidden_zeros:
 
@@ -160,17 +155,12 @@ class MultiStepWaypoint(nn.Module):
 
 		for _ in range(self.number_of_steps):
 
-			if target_waypoint is not None:
 
-				x_in = torch.cat([waypoint, target_waypoint], dim = 1)
+			x_in = torch.cat([waypoint, target_waypoint], dim = 1)
 
-			else:
-
-				x_in = torch.cat([waypoint, j], dim = 1)
-
+			
 			h = self.recurrent_cell(x_in, h)
 
-			#j = self.encoder(h)
 
 			delta_waypoint = self.policy_head_waypoint(h)[0]
 
@@ -186,9 +176,15 @@ class MultiStepWaypoint(nn.Module):
 class MultiStepControlCell(nn.Module):
 	"""Multi-step control branch implementation"""
 
-	def __init__(self, params = None):
+	def __init__(self, params = None, multi_step_control:MultiStepControl = None):
 
 		super(MultiStepControlCell, self).__init__()
+
+		if multi_step_control is not None:
+
+			params = multi_step_control.params
+
+		
 
 		"""" ---------------------- MULTI-STEP ----------------------- """
 		if params is None:
@@ -268,13 +264,18 @@ class MultiStepControlCell(nn.Module):
 		return h, mu, sigma, j
 
 
-class MultiStepWaypointCell(nn.Module):
+class MultiStepTrajectoryCell(nn.Module):
 	"""Multi-step control branch implementation"""
 
-	def __init__(self, params = None):
+	def __init__(self, params = None, multi_step_trajectory:MultiStepTrajectory = None):
 
-		super(MultiStepWaypointCell, self).__init__()
+		super(MultiStepTrajectoryCell, self).__init__()
 
+		if multi_step_trajectory is not None:
+
+			params = multi_step_trajectory.params
+
+		
 		"""" ---------------------- MULTI-STEP ----------------------- """
 		if params is None:
 			raise ValueError("Creating a NULL MultiStep block")
@@ -287,9 +288,6 @@ class MultiStepWaypointCell(nn.Module):
 
 		if 'hidden_size' not in params:
 			raise ValueError(" Missing the hidden size parameter ")
-
-		if 'encoder' not in params:
-			raise ValueError(" Missing the encoder parameter ")
 
 		if 'policy_head_waypoint' not in params:
 			raise ValueError(" Missing the policy head waypoint parameter ")
@@ -305,7 +303,6 @@ class MultiStepWaypointCell(nn.Module):
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
 
-		self.encoder = params['encoder']#nn.Linear(self.hidden_size, self.hidden_size)
 		self.policy_head_waypoint = params['policy_head_waypoint']#nn.Linear(self.hidden_size, self.input_size)
 		self.number_of_steps = params['number_of_steps']
 
@@ -315,7 +312,7 @@ class MultiStepWaypointCell(nn.Module):
 
 		# TODO: Follow the multi-modal fusion transformer paper for autoregressive GRU implementation
 
-	def forward(self, waypoint, j, target_waypoint = None):
+	def forward(self, h, waypoint, target_waypoint):
 		
 		# waypoint_vector = []
 		# j_vector = []
@@ -335,14 +332,10 @@ class MultiStepWaypointCell(nn.Module):
 
 	
 
-		if target_waypoint is not None:
 
-			x_in = torch.cat([waypoint, target_waypoint], dim = 1)
+		x_in = torch.cat([waypoint, target_waypoint], dim = 1)
 
-		else:
-
-			x_in = torch.cat([waypoint, j], dim = 1)
-
+		
 		h = self.recurrent_cell(x_in, h)
 
 		#j = self.encoder(h)
@@ -352,4 +345,81 @@ class MultiStepWaypointCell(nn.Module):
 		waypoint = waypoint + delta_waypoint
 
 		return h, waypoint
+
+
+# Shit! Some serious stuff :D
+class MultiStepTrajectoryGuidedControl(nn.Module):
+
+	def __init__(self, params = None):
+
+		super(MultiStepTrajectoryGuidedControl, self).__init__()
+
+		"""" ---------------------- MULTI-STEP ----------------------- """
+		if params is None:
+			raise ValueError("Creating a NULL MultiStep block")
+
+		if 'multi_step_control_cell' not in params:
+			raise ValueError(" Missing the multi step control cell parameter ")
+
+		if 'multi_step_trajectory_cell' not in params:
+			raise ValueError(" Missing the multi step trajectory cell parameter ")
+
+		self.multi_step_control_cell = params['multi_step_control_cell']
+		self.multi_step_trajectory_cell = params['multi_step_trajectory_cell']
+
+
+
+	def forward(self, j_control, mu, sigma, h_traj, waypoint, F, target_waypoint, attention_dims):
+		
+		mu_vector = []
+		sigma_vector = []
+		waypoint_vector = []
+		j_control_vector = []
+		attention_map_vector = []
+
+		h_control = torch.zeros_like(j_control, dtype = j_control.dtype, device = j_control.device)
+
+		mu_vector.append(mu)
+		sigma_vector.append(sigma)
+		j_control_vector.append(j_control)
+
+		
+
+		for _ in range(self.multi_step_trajectory_cell.number_of_steps):
+
+
+			h_traj, waypoint = self.multi_step_trajectory_cell(h_traj, waypoint, target_waypoint)
+			h_control = self.multi_step_control_cell.recurrent_cell(torch.cat([mu, sigma, j_control], dim = 1), h_control)
+			
+			attention_map = torch.cat([h_traj, h_control], dim = 1).view(-1, 1, *attention_dims)
+
+			attended_features = torch.sum(attention_map * F, dim=(2, 3))
+
+			j_control = self.attention_encoder(torch.cat([attended_features, h_control], dim = 1))
+
+			delta_j_control = self.multi_step_control_cell.encoder(j_control)[0]
+
+			j_control = j_control + delta_j_control
+
+			mu = self.multi_step_control_cell.policy_head_mu(j_control)[0]
+			sigma = self.multi_step_control_cell.policy_head_sigma(j_control)[0]
+
+			mu_vector.append(mu)
+			sigma_vector.append(sigma)
+			waypoint_vector.append(waypoint)
+			j_control_vector.append(j_control)
+			attention_map_vector.append(attention_map)
+
+		pred_mu = torch.stack(mu_vector, dim = 1)
+		pred_sigma = torch.stack(sigma_vector, dim = 1)
+		pred_waypoint = torch.stack(waypoint_vector, dim = 1)
+		pred_j_control = torch.stack(j_control_vector, dim = 1)
+		pred_attention_map = torch.stack(attention_map_vector, dim = 1)
+
+
+		return pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map
+
+
+
+		
 

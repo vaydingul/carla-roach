@@ -54,7 +54,7 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, input_shape, num_classes=1000, output_avg_pool = True):
+    def __init__(self, block, layers, input_shape, num_classes=1000):
 
         im_channels, im_h, im_w = input_shape
 
@@ -90,11 +90,11 @@ class ResNet(nn.Module):
             x4 = self.layer4(x3)
 
             x = self.avgpool(x4)
+            self.attention_dims = x.shape[2:]
             x = x.view(x.size(0), -1)
-            n_flatten = x.shape[1]
+            self.n_flatten = x.shape[1]
         # print(n_flatten)
-        if not self.output_avg_pool:
-            self.fc = nn.Linear(n_flatten, num_classes)
+        self.fc = nn.Linear(self.n_flatten, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -130,14 +130,12 @@ class ResNet(nn.Module):
         x3 = self.layer3(x2)
         x4 = self.layer4(x3)
 
-        x = self.avgpool(x4)
+        F = self.avgpool(x4)
 
-        if self.output_avg_pool: return x
-
-        x = x.view(x.size(0), -1)
+        x = F.view(F.size(0), -1)
         x = self.fc(x)
 
-        return x
+        return x, F
 
     def get_layers_features(self, x):
         # Just get the intermediate layers directly.
@@ -183,7 +181,7 @@ def ResNet34TCP(input_shape, num_classes, pretrained=True):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], input_shape, num_classes, output_avg_pool=True)
+    model = ResNet(BasicBlock, [3, 4, 6, 3], input_shape, num_classes)
     if pretrained:
         model_dict = model_zoo.load_url(model_urls['resnet34'])
         # remove the fc layers

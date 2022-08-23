@@ -8,7 +8,7 @@ from .networks.branching import Branching
 from .networks.fc import FC
 from .networks.join import Join
 from .networks import resnet
-from .networks.multistep import MultiStepControl, MultiStepWaypoint
+from .networks.multistep import MultiStepControl, MultiStepTrajectory, MultiStepControlCell, MultiStepTrajectoryCell, MultiStepTrajectoryGuidedControl
 
 
 log = logging.getLogger(__name__)
@@ -22,7 +22,9 @@ class CoILICRA(nn.Module):
                  resnet_pretrain=True,
                  use_multi_step_control=True,
                  use_multi_step_waypoint=True,
-                 initial_hidden_zeros=True,
+                 use_trajectory_guided_control=True,
+                 initial_hidden_zeros_control=True,
+                 initial_hidden_zeros_trajectory=False,
                  perception_output_neurons=512,
                  measurements_neurons=[128, 128],
                  measurements_dropouts=[0.0, 0.0],
@@ -54,6 +56,13 @@ class CoILICRA(nn.Module):
             self.device = 'cpu'
 
         self.number_of_branches = number_of_branches
+        self.use_multi_step_control = use_multi_step_control
+        self.use_multi_step_waypoint = use_multi_step_waypoint
+        self.use_trajectory_guided_control = use_trajectory_guided_control
+        self.initial_hidden_zeros_control = initial_hidden_zeros_control
+        self.initial_hidden_zeros_trajectory = initial_hidden_zeros_trajectory
+
+
 
         rl_state_dict = None
         if rl_ckpt is not None:
@@ -83,7 +92,7 @@ class CoILICRA(nn.Module):
         self.measurements = FC(params={'neurons': [input_states_len] + measurements_neurons,
                                        'dropouts': measurements_dropouts,
                                        'end_layer': None})
-
+        self.attention_encoder = None
         # concat/join block
         self.join = Join(params={'after_process':
                                  FC(params={'neurons':
@@ -193,33 +202,12 @@ class CoILICRA(nn.Module):
         self.number_of_steps_control = number_of_steps_control
         self.number_of_steps_waypoint = number_of_steps_waypoint
 
-        if not use_multi_step_control:
 
-            self.number_of_steps_control = 0
+        if use_multi_step_control:
 
-           
-        self.multi_step_control = MultiStepControl(params={
-        'recurrent_cell': nn.GRUCell,
-        'input_size' : 4 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
-        'hidden_size' : join_neurons[-1],
-        'encoder' : FC(params = {
-            'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
-            'dropouts' : multi_step_dropouts + [0.0],
-            'end_layer' : None
-        }
-        ),
-        'policy_head_mu' : self.mu_branches,
-        'policy_head_sigma' : self.sigma_branches,
-        'number_of_steps' : self.number_of_steps_control,
-        'initial_hidden_zeros' : initial_hidden_zeros
-        }
-        )
-
-        if use_multi_step_waypoint:
-
-            self.multi_step_waypoint = MultiStepWaypoint(params={
+            multi_step_control = MultiStepControl(params={
             'recurrent_cell': nn.GRUCell,
-            'input_size' : 2 + 2,#join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
+            'input_size' : 4 + join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
             'hidden_size' : join_neurons[-1],
             'encoder' : FC(params = {
                 'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
@@ -227,11 +215,41 @@ class CoILICRA(nn.Module):
                 'end_layer' : None
             }
             ),
-            'policy_head_waypoint' : self.waypoint_branches,
-            'number_of_steps' : self.number_of_steps_waypoint,
-            'initial_hidden_zeros' : initial_hidden_zeros
+            'policy_head_mu' : self.mu_branches,
+            'policy_head_sigma' : self.sigma_branches,
+            'number_of_steps' : self.number_of_steps_control,
+            'initial_hidden_zeros' : initial_hidden_zeros_control
             }
             )
+
+        if use_multi_step_waypoint:
+
+            multi_step_waypoint = MultiStepTrajectory(params={
+            'recurrent_cell': nn.GRUCell,
+            'input_size' : 2 + 2,#join_neurons[-1], # 4 comes from alpha-acc, alpha-steer, beta-acc, beta-steer
+            'hidden_size' : join_neurons[-1],
+            'policy_head_waypoint' : self.waypoint_branches,
+            'number_of_steps' : self.number_of_steps_waypoint,
+            'initial_hidden_zeros' : initial_hidden_zeros_trajectory
+            }
+            )
+        
+        if use_trajectory_guided_control:
+
+            self.multi_step_control_cell = MultiStepControlCell(multi_step_control=multi_step_control)
+            self.multi_step_waypoint_cell = MultiStepTrajectoryCell(multi_step_waypoint=multi_step_waypoint)
+
+            self.multi_step_trajectory_guided_control = MultiStepTrajectoryGuidedControl(params={
+                "multi_step_control_cell" : self.multi_step_control_cell,
+                "multi_step_waypoint_cell" : self.multi_step_waypoint_cell,   
+            }
+            )
+
+        else:
+
+            self.multi_step_control = multi_step_control
+            self.multi_step_waypoint = multi_step_waypoint
+
 
         # init
         for m in self.modules():
@@ -249,26 +267,51 @@ class CoILICRA(nn.Module):
             im = im.view(b, c*t, h, w)
 
         """ ###### APPLY THE PERCEPTION MODULE """
-        all_layers = self.perception.get_layers_features(im)
-        for layer, layer_name in zip(all_layers, ["x0", "x1", "x2", "x3", "x4", "x5", "x"]):
-            
-            log.info(f"{layer_name} shape: {layer.shape}")
+        #all_layers = self.perception.get_layers_features(im)
+        #for layer, layer_name in zip(all_layers, ["x0", "x1", "x2", "x3", "x4", "x5", "x"]):
+        #    
+        #    log.info(f"{layer_name} shape: {layer.shape}")
         
-        exit()
-
-        x = self.perception(im)
+        # Feed to ResNet34, take the output of the avgpool and FC
+        x, F = self.perception(im) # Image feature
+        
 
         """ ###### APPLY THE MEASUREMENT MODULE """
         m = self.measurements(state)
 
         """ Join measurements and perception"""
-        j = self.join(x, m)
+        j_traj = self.join(x, m)
 
         # build outputs dict
         outputs = {'pred_speed': self.speed_branch(x)}
 
         if self.value_as_supervision:
-            outputs['pred_value'] = self.value_branch(j)
+            outputs['pred_value'] = self.value_branch(j_traj)
+
+        waypoint = th.zeros((j_traj.shape[0], 2), dtype = j_traj.dtype, device=j_traj.device)
+
+
+        if self.use_trajectory_guided_control:
+            
+            assert self.number_of_steps_control == self.number_of_steps_waypoint, "Number of steps for control and trajectory branch must be equal!"
+            
+
+            initial_attention_map = th.cat([j_traj, m], dim=1).view(-1, 1, *self.perception.attention_dims)
+            attended_features = th.sum(initial_attention_map * F, dim=(2, 3))
+            j_control = self.attention_encoder(th.cat([attended_features, m], dim=1))
+            
+            mu = self.mu_branches(j_control)[0]
+            sigma = self.sigma_branches(j_control)[0]
+
+
+            pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[1:3], self.perception.attention_dims)
+        
+
+
+            
+
+
+
 
         
         
