@@ -1,6 +1,7 @@
 import logging
 import torch.nn as nn
 import torch as th
+import numpy as np
 import copy
 from collections import OrderedDict
 
@@ -92,7 +93,16 @@ class CoILICRA(nn.Module):
         self.measurements = FC(params={'neurons': [input_states_len] + measurements_neurons,
                                        'dropouts': measurements_dropouts,
                                        'end_layer': None})
-        self.attention_encoder = None
+
+        self.attention_encoder_1 = FC(params={'neurons': [measurements_neurons[-1] + dim_features_supervision, int(np.prod(self.perception.attention_dims[1:]))],
+                                            'dropouts': [0.0], 
+                                            'end_layer': None})
+
+        self.attention_encoder_2 = FC(params={'neurons': [self.perception.attention_dims[0] + measurements_neurons[-1], dim_features_supervision],
+                                            'dropouts': [0.0], 
+                                            'end_layer': None})
+
+
         # concat/join block
         self.join = Join(params={'after_process':
                                  FC(params={'neurons':
@@ -237,11 +247,13 @@ class CoILICRA(nn.Module):
         if use_trajectory_guided_control:
 
             self.multi_step_control_cell = MultiStepControlCell(multi_step_control=multi_step_control)
-            self.multi_step_waypoint_cell = MultiStepTrajectoryCell(multi_step_waypoint=multi_step_waypoint)
+            self.multi_step_waypoint_cell = MultiStepTrajectoryCell(multi_step_trajectory=multi_step_waypoint)
 
             self.multi_step_trajectory_guided_control = MultiStepTrajectoryGuidedControl(params={
                 "multi_step_control_cell" : self.multi_step_control_cell,
-                "multi_step_waypoint_cell" : self.multi_step_waypoint_cell,   
+                "multi_step_trajectory_cell" : self.multi_step_waypoint_cell,
+                "attention_encoder_1": self.attention_encoder_1,
+                "attention_encoder_2": self.attention_encoder_2
             }
             )
 
@@ -274,13 +286,17 @@ class CoILICRA(nn.Module):
         
         # Feed to ResNet34, take the output of the avgpool and FC
         x, F = self.perception(im) # Image feature
-        
+        # log.info(f"x shape: {x.shape}")
+        # log.info(f"F shape: {F.shape}")
+
 
         """ ###### APPLY THE MEASUREMENT MODULE """
         m = self.measurements(state)
+        # log.info(f"m shape: {m.shape}")
 
         """ Join measurements and perception"""
         j_traj = self.join(x, m)
+        # log.info(f"j_traj shape: {j_traj.shape}")
 
         # build outputs dict
         outputs = {'pred_speed': self.speed_branch(x)}
@@ -289,22 +305,26 @@ class CoILICRA(nn.Module):
             outputs['pred_value'] = self.value_branch(j_traj)
 
         waypoint = th.zeros((j_traj.shape[0], 2), dtype = j_traj.dtype, device=j_traj.device)
-
+        # log.info(f"waypoint shape: {waypoint.shape}")
 
         if self.use_trajectory_guided_control:
             
             assert self.number_of_steps_control == self.number_of_steps_waypoint, "Number of steps for control and trajectory branch must be equal!"
             
+            # log.info(f"Attention Dims: {self.perception.attention_dims}")
+            initial_attention_map = th.softmax(self.attention_encoder_1(th.cat([j_traj, m], dim=1)),dim=1).view(-1, 1, *(self.perception.attention_dims[1:]))
+            # log.info(f"initial_attention_map shape: {initial_attention_map.shape}")
+            attended_features = th.sum(initial_attention_map * F, dim = (2, 3))
+            # log.info(f"attended_features shape: {attended_features.shape}")
+            j_control = self.attention_encoder_2(th.cat([attended_features, m], dim=1))
+            # log.info(f"j_control shape: {j_control.shape}")
 
-            initial_attention_map = th.cat([j_traj, m], dim=1).view(-1, 1, *self.perception.attention_dims)
-            attended_features = th.sum(initial_attention_map * F, dim=(2, 3))
-            j_control = self.attention_encoder(th.cat([attended_features, m], dim=1))
-            
             mu = self.mu_branches(j_control)[0]
+            # log.info(f"mu shape: {mu.shape}")
             sigma = self.sigma_branches(j_control)[0]
+            # log.info(f"sigma shape: {sigma.shape}")
 
-
-            pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[1:3], self.perception.attention_dims)
+            pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[:, 1:3], self.perception.attention_dims)
         
 
 
@@ -324,11 +344,6 @@ class CoILICRA(nn.Module):
         outputs['pred_attention_map'] = pred_attention_map
 
 
-
-
-
-        
-        
         if self.action_distribution is None:
             #outputs['action_branches'] = self.branches(j)
             raise NotImplementedError

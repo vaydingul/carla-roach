@@ -35,7 +35,7 @@ class MultiStepControl(nn.Module):
 
 		if 'initial_hidden_zeros' not in params:
 			raise ValueError(" Missing the initial hidden zeros parameter ")	
-
+		self.params = params
 		self.input_size = params['input_size']
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
@@ -122,7 +122,7 @@ class MultiStepTrajectory(nn.Module):
 		if 'initial_hidden_zeros' not in params:
 			raise ValueError(" Missing the initial hidden zeros parameter ")
 
-
+		self.params = params
 		self.input_size = params['input_size']
 		self.hidden_size = params['hidden_size']
 		self.recurrent_cell = params['recurrent_cell'](params['input_size'], params['hidden_size'])
@@ -363,10 +363,17 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 
 		if 'multi_step_trajectory_cell' not in params:
 			raise ValueError(" Missing the multi step trajectory cell parameter ")
+		
+		if 'attention_encoder_1' not in params:
+			raise ValueError(" Missing the attention encoder 1 parameter ")
+
+		if 'attention_encoder_2' not in params:
+			raise ValueError(" Missing the attention encoder 2 parameter ")
 
 		self.multi_step_control_cell = params['multi_step_control_cell']
 		self.multi_step_trajectory_cell = params['multi_step_trajectory_cell']
-
+		self.attention_encoder_1 = params['attention_encoder_1']
+		self.attention_encoder_2 = params['attention_encoder_2']
 
 
 	def forward(self, j_control, mu, sigma, h_traj, waypoint, F, target_waypoint, attention_dims):
@@ -383,7 +390,7 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 		sigma_vector.append(sigma)
 		j_control_vector.append(j_control)
 
-		
+
 
 		for _ in range(self.multi_step_trajectory_cell.number_of_steps):
 
@@ -391,11 +398,9 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 			h_traj, waypoint = self.multi_step_trajectory_cell(h_traj, waypoint, target_waypoint)
 			h_control = self.multi_step_control_cell.recurrent_cell(torch.cat([mu, sigma, j_control], dim = 1), h_control)
 			
-			attention_map = torch.cat([h_traj, h_control], dim = 1).view(-1, 1, *attention_dims)
-
-			attended_features = torch.sum(attention_map * F, dim=(2, 3))
-
-			j_control = self.attention_encoder(torch.cat([attended_features, h_control], dim = 1))
+			attention_map = torch.softmax(self.attention_encoder_1(torch.cat([h_traj, h_control], dim = 1)), dim = 1).view(-1, 1, *(attention_dims[1:]))
+			attended_features = torch.sum(attention_map * F, dim = (2, 3))
+			j_control = self.attention_encoder_2(torch.cat([attended_features, h_control], dim = 1))
 
 			delta_j_control = self.multi_step_control_cell.encoder(j_control)[0]
 

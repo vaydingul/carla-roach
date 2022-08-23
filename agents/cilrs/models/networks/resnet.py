@@ -58,7 +58,6 @@ class ResNet(nn.Module):
 
         im_channels, im_h, im_w = input_shape
 
-        self.output_avg_pool = output_avg_pool
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv2d(im_channels, 64, kernel_size=7, stride=2, padding=3,
@@ -90,7 +89,7 @@ class ResNet(nn.Module):
             x4 = self.layer4(x3)
 
             x = self.avgpool(x4)
-            self.attention_dims = x.shape[2:]
+            self.attention_dims = x.shape[1:]
             x = x.view(x.size(0), -1)
             self.n_flatten = x.shape[1]
         # print(n_flatten)

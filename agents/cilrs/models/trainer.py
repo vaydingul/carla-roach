@@ -127,15 +127,16 @@ class Trainer():
 
             # val
             t_val = time.time()
-            val_loss, val_action_loss, val_speed_loss, val_value_loss, val_features_loss, val_trajectory_loss = \
+            val_loss, val_action_loss, val_trajectory_loss, val_speed_loss, val_value_loss, val_feature_loss_control, val_feature_loss_trajectory = \
                 self._validate(val_dataset, idx_epoch)
             wandb.log({
                 'val/loss': val_loss,
                 'val/action_loss': val_action_loss,
+                'val/trajectory_loss': val_trajectory_loss,
                 'val/speed_loss': val_speed_loss,
                 'val/value_loss': val_value_loss,
-                'val/features_loss': val_features_loss,
-                'val/trajectory_loss': val_trajectory_loss,
+                'val/feature_loss_control': val_feature_loss_control,
+                'val/feature_loss_trajectory': val_feature_loss_trajectory,
                 'time/val_time': time.time()-t_val
             }, step=self.iteration)
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
@@ -258,7 +259,7 @@ class Trainer():
         # if idx_epoch == 0:
         #     wandb.log({'inspect/im_val': [wandb.Image(policy_input['im'], caption="val")]}, step=idx_epoch)
 
-        return loss, action_loss, speed_loss, value_loss, features_loss, trajectory_loss
+        return loss, action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory
 
     def save(self, path: str):
         if self.num_gpus > 1:

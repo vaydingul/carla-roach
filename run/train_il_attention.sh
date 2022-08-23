@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="ResNet Feature Shapes"' \
+wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Attention Test"' \
 dagger_datasets=["/home/vaydingul/Documents/Codes/4-episode/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
@@ -37,14 +37,16 @@ agent.cilrs.env_wrapper.kwargs.value_as_supervision=true \
 agent.cilrs.training.kwargs.value_weight=0.001 \
 agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
 agent.cilrs.training.kwargs.features_weight=0.05 \
-agent.cilrs.training.kwargs.action_loss_weight=0 \
-agent.cilrs.training.kwargs.trajectory_weight=1 \
+agent.cilrs.training.kwargs.action_loss_weight=0.5 \
+agent.cilrs.training.kwargs.trajectory_weight=0.5 \
 agent.cilrs.training.kwargs.batch_size=16 \
 agent.cilrs.training.kwargs.num_workers=4 \
-agent.cilrs.policy.kwargs.use_multi_step_control=false \
+agent.cilrs.policy.kwargs.use_multi_step_control=true \
 agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
-agent.cilrs.policy.kwargs.initial_hidden_zeros=false \
-agent.cilrs.policy.kwargs.number_of_steps_control=0 \
+agent.cilrs.policy.kwargs.use_trajectory_guided_control=true \
+agent.cilrs.policy.kwargs.initial_hidden_zeros_control=true \
+agent.cilrs.policy.kwargs.initial_hidden_zeros_trajectory=false \
+agent.cilrs.policy.kwargs.number_of_steps_control=4 \
 agent.cilrs.policy.kwargs.number_of_steps_waypoint=4 \
 train_epochs=500 \
 cache_dir="$1"
