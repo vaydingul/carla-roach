@@ -308,26 +308,39 @@ class CoILICRA(nn.Module):
         
 
 
-            
+        else:
+
+            if self.use_multi_step_control:
+
+                pred_mu, pred_sigma, pred_j_control = self.multi_step_control(j_traj)
+
+            if self.use_multi_step_waypoint:
+
+                pred_waypoint = self.multi_step_waypoint(j_traj, state[:, 1:3])
+
+        
+        outputs['pred_j_control'] = pred_j_control
+        outputs['pred_waypoint'] = pred_waypoint
+        outputs['pred_attention_map'] = pred_attention_map
+
 
 
 
 
         
         
-        pred_mu, pred_sigma, pred_j = self.multi_step_control(j)
-        pred_waypoint = self.multi_step_waypoint(j, state[:, 1:3]) # Target waypoint is also fed
-
         if self.action_distribution is None:
             #outputs['action_branches'] = self.branches(j)
             raise NotImplementedError
         else:
             outputs['pred_mu'] = pred_mu
             outputs['pred_sigma'] = pred_sigma
+
+
         if self.dim_features_supervision > 0:
-            outputs['pred_features'] = pred_j
+            outputs['pred_features_control'] = pred_j_control
+            outputs['pred_features_trajectory'] = j_traj
         
-        outputs["pred_waypoint"] = pred_waypoint
         
         return outputs
 

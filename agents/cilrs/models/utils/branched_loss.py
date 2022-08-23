@@ -74,6 +74,41 @@ class BranchedLoss():
             if self.action_mll is not None:
                 # maximum log likelihood
                 raise NotImplementedError
+        # features_loss
+        feature_loss_control = th.zeros_like(action_loss)
+        if 'pred_features_control' in outputs and 'features' in supervisions:
+            feature_loss_control = 0.
+
+            for i in range(number_of_steps_control + 1):
+
+                if i == 0:
+
+                    feature_loss_control += F.mse_loss(
+                        outputs['pred_features_control'][:, i, :], supervisions['features'][:, i, :])
+
+                else:
+
+                    feature_loss_control += F.mse_loss(outputs['pred_features_control'][:, i, :],
+                                               supervisions['features'][:, i, :]) / number_of_steps_control
+
+        # Trajectory loss
+        trajectory_loss = th.zeros_like(action_loss)
+        if 'pred_waypoint' in outputs:
+
+            for i in range(number_of_steps_waypoint):
+
+                trajectory_loss += self.loss(
+                    outputs['pred_waypoint'][:, i, :], waypoints[:, i, :])
+
+        # features_loss
+        feature_loss_trajectory = th.zeros_like(action_loss)
+        if 'pred_features_trajectory' in outputs and 'features' in supervisions:
+            feature_loss_trajectory = 0.
+
+            feature_loss_trajectory += F.mse_loss(
+                outputs['pred_features_trajectory'], supervisions['features'][:, 0, :])
+
+                
 
         # speed_loss
         speed_loss = th.zeros_like(action_loss)
@@ -88,37 +123,16 @@ class BranchedLoss():
             value_loss = F.mse_loss(
                 outputs['pred_value'], supervisions['value'][:, 0, :])
 
-        # features_loss
-        feature_loss = th.zeros_like(action_loss)
-        if 'pred_features' in outputs and 'features' in supervisions:
-            feature_loss = 0.
+        
 
-            for i in range(number_of_steps_control + 1):
-
-                if i == 0:
-
-                    feature_loss += F.mse_loss(
-                        outputs['pred_features'][:, i, :], supervisions['features'][:, i, :])
-
-                else:
-
-                    feature_loss += F.mse_loss(outputs['pred_features'][:, i, :],
-                                               supervisions['features'][:, i, :]) / number_of_steps_control
-
-        # Trajectory loss
-        trajectory_loss = th.zeros_like(action_loss)
-        if 'pred_waypoint' in outputs:
-
-            for i in range(number_of_steps_waypoint):
-
-                trajectory_loss += self.loss(
-                    outputs['pred_waypoint'][:, i, :], waypoints[:, i, :])
+        
 
         return action_loss * self.action_loss_weight,\
+            trajectory_loss * self.trajectory_weight,\
             speed_loss * self.speed_weight,\
             value_loss * self.value_weight,\
-            feature_loss * self.features_weight * (self.action_loss_weight if self.action_loss_weight > 0 else 1),\
-            trajectory_loss * self.trajectory_weight
+            feature_loss_control * self.features_weight * (self.action_loss_weight if self.action_loss_weight > 0 else 1),\
+            feature_loss_trajectory * self.features_weight * (self.trajectory_weight if self.trajectory_weight > 0 else 1)
 
     @staticmethod
     def _get_branch_masks(commands, n_branches, n_actions):

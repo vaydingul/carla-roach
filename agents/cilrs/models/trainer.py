@@ -195,18 +195,19 @@ class Trainer():
             #log.info(f"Predicted Waypoint Size {outputs['pred_waypoint'].size()}")
             #log.info(f"Actual Waypoint Size {policy_input['waypoint_location_ev'].size()}")
 
-            action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_location_ev'])
-            loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
+            action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_location_ev'])
+            loss = action_loss + trajectory_loss + speed_loss + value_loss + feature_loss_control + feature_loss_trajectory
             loss.backward()
             self.optimizer.step()
 
             wandb.log({
                 'train/loss': loss.item(),
                 'train/action_loss': action_loss.item(),
+                'train/trajectory_loss': trajectory_loss.item(),
                 'train/speed_loss': speed_loss.item(),
                 'train/value_loss': value_loss.item(),
-                'train/features_loss': features_loss.item(),
-                'train/trajectory_loss': trajectory_loss.item(),
+                'train/feature_loss_control': feature_loss_control.item(),
+                'train/feature_loss_trajectory': feature_loss_trajectory.item(),
                 'time/train_fps': self.batch_size / (time.time()-t0),
                 'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
@@ -220,10 +221,11 @@ class Trainer():
 
         losses = []
         action_losses = []
+        trajectory_losses = []
         speed_losses = []
         value_losses = []
-        features_losses = []
-        trajectory_losses = []
+        feature_losses_control = []
+        feature_losses_trajectory = []
         for command, policy_input, supervision in dataset:
             
           
@@ -234,22 +236,24 @@ class Trainer():
             # controls = data['cmd']
             with th.no_grad():
                 outputs = self.policy.forward(policy_input['im'], policy_input['state'])
-                action_loss, speed_loss, value_loss, features_loss, trajectory_loss = self.criterion.forward(
+                action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory = self.criterion.forward(
                     outputs, supervision, command, policy_input['waypoint_location_ev'])
-                loss = action_loss+speed_loss+value_loss+features_loss+trajectory_loss
+                loss = action_loss + trajectory_loss + speed_loss + value_loss + feature_loss_control + feature_loss_trajectory
                 losses.append(loss.item())
                 action_losses.append(action_loss.item())
                 speed_losses.append(speed_loss.item())
                 value_losses.append(value_loss.item())
-                features_losses.append(features_loss.item())
+                feature_losses_control.append(feature_loss_control.item())
+                feature_losses_trajectory.append(feature_loss_trajectory.item())
                 trajectory_losses.append(trajectory_loss.item())
 
         loss = np.mean(losses)
         action_loss = np.mean(action_losses)
+        trajectory_loss = np.mean(trajectory_losses)
         speed_loss = np.mean(speed_losses)
         value_loss = np.mean(value_losses)
-        features_loss = np.mean(features_losses)
-        trajectory_loss = np.mean(trajectory_losses)
+        feature_loss_control = np.mean(feature_losses_control)
+        feature_loss_trajectory = np.mean(feature_losses_trajectory)
 
         # if idx_epoch == 0:
         #     wandb.log({'inspect/im_val': [wandb.Image(policy_input['im'], caption="val")]}, step=idx_epoch)
