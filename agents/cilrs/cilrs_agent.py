@@ -3,7 +3,7 @@ from omegaconf import OmegaConf
 import wandb
 import copy
 from collections import deque
-
+import numpy as np
 from carla_gym.utils.config_utils import load_entry_point
 
 
@@ -115,16 +115,17 @@ class CilrsAgent():
 
         actions_control, actions_trajectory, pred_speed, pred_waypoint = self._policy.forward_branch(command, im = policy_input['im'], state = policy_input['state'])
         
-        control = self._env_wrapper.process_act_control(actions_control)
-        #control = self._env_wrapper.process_act_trajectory(actions_trajectory)
+        control_action, control_action_array = self._env_wrapper.process_act_control(actions_control)
+        control_trajectory, control_trajectory_array = self._env_wrapper.process_act_trajectory(actions_trajectory)
 
         self._render_dict = {
             'policy_input': policy_input,
             'command': command,
-            'action_control': actions_control,
-            'action_trajectory': actions_trajectory,
+            'action_control': control_action_array,
+            'action_trajectory': control_trajectory_array,
+            'control_output': np.array(actions_control),
+            'trajectory_output': np.array(actions_trajectory),
             'pred_speed': pred_speed,
-            'gt_waypoint': policy_input['waypoint_location'],
             'pred_waypoint': pred_waypoint,
             'world_2_camera': policy_input['world_2_camera'],
             'camera_2_world': policy_input['camera_2_world'],
@@ -135,7 +136,9 @@ class CilrsAgent():
         }
         self._render_dict = copy.deepcopy(self._render_dict)
         self.supervision_dict = {}
-        return control
+
+
+        return control_trajectory
 
     def reset(self, log_file_path):
         # logger
