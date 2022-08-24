@@ -22,8 +22,8 @@ K[1, 1] = FOCAL
 K[0, 2] = WIDTH / 2.0
 K[1, 2] = HEIGHTH / 2.0
 
-OFFSET = 1
-STEP = 4  # 4
+OFFSET = 20
+STEP = 20  # 4
 STRIDE = 1
 
 THICKNESS_MAX = 5
@@ -93,8 +93,8 @@ def world_2_pixel(world_point, world_2_camera):
         sensor_points[2] * -1,
         sensor_points[0]])
     #print(point_in_camera_coords[2])
-    point_in_camera_coords[0] -= 0
-    point_in_camera_coords[1] -= 1.7
+    #point_in_camera_coords[0] -= 0
+    #point_in_camera_coords[1] -= 1.7
     #point_in_camera_coords[1] -= 1
     #point_in_camera_coords[2] += 5
     # Finally we can use our K matrix to do the actual 3D -> 2D.
@@ -130,7 +130,7 @@ def main(dataset_path, episode):
     video = VideoWriter('./wp-ground-truth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
-    while i < 5:
+    while i < 3000:
 
         # Read the data
         try:
@@ -192,5 +192,5 @@ if __name__ == '__main__':
 
     # Fetch the h5 files
     dataset_path = '/home/vaydingul/Documents/Codes/4-episode/expert/'
-    episode = 1
+    episode = 2
     main(dataset_path, episode)

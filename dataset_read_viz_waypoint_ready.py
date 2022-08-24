@@ -116,7 +116,7 @@ def main(dataset_path, episode):
     f = h5py.File(h5_file, 'r')
 
     fourcc = VideoWriter_fourcc(*'mp4v')
-    video = VideoWriter('./wp-ground-truth.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
+    video = VideoWriter('./wp-route-trace.mp4', fourcc, float(FPS), (WIDTH//2, HEIGHTH//2))
 
     i = 0
     while i < 3000:
@@ -130,7 +130,7 @@ def main(dataset_path, episode):
 
         camera_2_world = f[f'step_{int(i)}/obs/central_rgb/camera_2_world'][()]
         world_2_camera = f[f'step_{int(i)}/obs/central_rgb/world_2_camera'][()]
-        wp_locs = f[f'step_{int(i+20)}/obs/ego_vehicle_route/wp_locs'][()]
+        wp_locs = f[f'step_{int(i+10)}/obs/ego_vehicle_route/wp_locs'][()]
 
         
 
@@ -170,6 +170,6 @@ def main(dataset_path, episode):
 if __name__ == '__main__':
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul/Documents/Codes/1-episode/expert/'
-    episode = 0
+    dataset_path = '/home/vaydingul/Documents/Codes/4-episode/expert/'
+    episode = 2
     main(dataset_path, episode)
