@@ -79,7 +79,8 @@ class Trainer():
         log.info(f'Trainable parameters: {total_params/1000000:.2f}M')
 
         # optimizer / lr_scheduler
-        self.learning_rate = learning_rate
+        self.learning_rate = 0.5 * learning_rate
+        log.info(f'Learning rate: {self.learning_rate}')
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
         self.scheduler = self.get_lr_scheduler()
 
