@@ -31,8 +31,8 @@ class CilrsWrapper():
         self.dim_features_supervision = dim_features_supervision
 
         # PID controllers for the vehicle control
-        self.longitudinal_pid_controller = controller.PIDController([0.5, 0.025, 0.01])
-        self.lateral_pid_controller = controller.PIDController([0.5, 0.05, 0.01])
+        self.longitudinal_pid_controller = controller.PIDController([5, 0.025, 0.01])
+        self.lateral_pid_controller = controller.PIDController([2.5, 0.05, 0.01])
 
 
         self.speed_factor = 12.0
@@ -133,14 +133,14 @@ class CilrsWrapper():
         else:
             throttle, steer, brake = action.astype(np.float64)
 
-        throttle = np.clip(throttle, 0, 1)
+        throttle = np.clip(throttle, 0, 0.75)
         steer = np.clip(steer, -1, 1)
         brake = np.clip(brake, 0, 1)
 
         #log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
         
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
-        return control
+        return control, np.array([acc, steer])
 
     def process_act_trajectory(self, action):
 
@@ -159,7 +159,7 @@ class CilrsWrapper():
             throttle = 0.0
             brake = np.abs(acc)
 
-        throttle = np.clip(throttle, 0, 1)
+        throttle = np.clip(throttle, 0, 0.75)        
         brake = np.clip(brake, 0, 1)
         steer = np.clip(steer, -1, 1)
 
@@ -167,7 +167,7 @@ class CilrsWrapper():
 
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
 
-        return control
+        return control, np.array([acc, steer])
 
 
     def process_supervision(self, supervision):
@@ -217,7 +217,6 @@ class CilrsWrapper():
     def im_render(render_dict):
         #im_birdview = CilrsWrapper.draw_route(render_dict)
         im_birdview = CilrsWrapper.draw_waypoint(render_dict, 'pred_waypoint', COLOR_BLUE)
-        im_birdview = CilrsWrapper.draw_waypoint(render_dict, 'gt_waypoint', COLOR_RED)
         im_birdview = CilrsWrapper.draw_gnss(im_birdview, render_dict)
         im_rgb = render_dict['central_rgb']
         #im_rgb = waypoint.draw_waypoints(im_rgb, render_dict['gt_waypoint'], render_dict['world_2_camera'], 100, COLOR_RED)
@@ -231,20 +230,26 @@ class CilrsWrapper():
 
         action_control_str = np.array2string(render_dict['action_control'], precision=2, separator=',', suppress_small=True)
         action_trajectory_str = np.array2string(np.array(render_dict['action_trajectory']), precision=2, separator=',', suppress_small=True)
-        gt_waypoint_str = np.array2string(np.array(render_dict['gt_waypoint']), precision=2, separator=',', suppress_small=True)
+        control_output_str = np.array2string(render_dict['control_output'], precision=2, separator=',', suppress_small=True)
+        trajectory_output_str = np.array2string(render_dict['trajectory_output'], precision=2, separator=',', suppress_small=True)
+        predicted_waypoint_str = np.array2string(np.array(render_dict['pred_waypoint']), precision=2, separator=',', suppress_small=True)
         state_str = np.array2string(render_dict['policy_input']['state'].numpy(),
                                     precision=2, separator=',', suppress_small=True)
 
-        txt_1 = f'a_control:{action_control_str}'
-        im = cv2.putText(im, txt_1, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt_2 = f'a_trajectory:{action_trajectory_str}'
-        im = cv2.putText(im, txt_2, (w,24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt_3 = f'pre_v:{render_dict["pred_speed"]}'
-        im = cv2.putText(im, txt_3, (w, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt_4 = f'gt_waypoint:{gt_waypoint_str}'
-        im = cv2.putText(im, txt_4, (0, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt_4 = f'cmd: {render_dict["command"][0]} s{state_str}'
-        im = cv2.putText(im, txt_4, (0, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'a_control:{action_control_str}'
+        im = cv2.putText(im, txt, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'a_trajectory:{action_trajectory_str}'
+        im = cv2.putText(im, txt, (w,24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'c_output:{control_output_str}'
+        im = cv2.putText(im, txt, (w,36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f't_output:{trajectory_output_str}'
+        im = cv2.putText(im, txt, (w,48), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'pre_v:{render_dict["pred_speed"]}'
+        im = cv2.putText(im, txt, (w, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'pred_waypoint:{predicted_waypoint_str}'
+        im = cv2.putText(im, txt, (0, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f'cmd: {render_dict["command"][0]} s{state_str}'
+        im = cv2.putText(im, txt, (0, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
 
         #for i, txt in enumerate(render_dict['reward_debug']['debug_texts'] +
         #                        render_dict['terminal_debug']['debug_texts']):
