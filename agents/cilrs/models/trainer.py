@@ -100,6 +100,7 @@ class Trainer():
             self.starting_iteration = 0
             self.starting_epoch = 0
             self.iteration = 0
+            self.learning_rate *= 0.5
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.learning_rate
             self.scheduler = self.get_lr_scheduler()
