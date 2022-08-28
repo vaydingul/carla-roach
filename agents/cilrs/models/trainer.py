@@ -79,8 +79,6 @@ class Trainer():
         log.info(f'Trainable parameters: {total_params/1000000:.2f}M')
 
         # optimizer / lr_scheduler
-        self.learning_rate = 0.5 * learning_rate
-        log.info(f'Learning rate: {self.learning_rate}')
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
         self.scheduler = self.get_lr_scheduler()
 
@@ -117,6 +115,9 @@ class Trainer():
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
 
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] *= 0.5
+
         t0 = time.time()
         log.info('Start Training')
 
@@ -142,7 +143,7 @@ class Trainer():
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
 
             # update lr
-            self.scheduler.step(val_loss)
+            #self.scheduler.step(val_loss)
 
             # save checkpoint
             # if (idx_epoch==0) or (idx_epoch>5 and val_loss < best_val_loss):
