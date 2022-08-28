@@ -285,8 +285,6 @@ class Trainer():
         trainer = cls(policy, **saved_variables['trainer_init_kwargs'])
         trainer.optimizer.load_state_dict(saved_variables['optimizer_state_dict'])
 
-        for g in trainer.optimizer.param_groups:
-            g['lr'] = 0.00005
 
         trainer.scheduler.load_state_dict(saved_variables['scheduler_state_dict'])
         return trainer
