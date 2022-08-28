@@ -100,7 +100,6 @@ class Trainer():
             self.starting_iteration = 0
             self.starting_epoch = 0
             self.iteration = 0
-            self.learning_rate *= 0.5
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.learning_rate
             self.scheduler = self.get_lr_scheduler()
@@ -115,6 +114,9 @@ class Trainer():
         # multi-gpu
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
+
+        for param_group in self.optimizer.param_groups:
+                param_group['lr'] = 0.5 * self.learning_rate
 
         t0 = time.time()
         log.info('Start Training')
