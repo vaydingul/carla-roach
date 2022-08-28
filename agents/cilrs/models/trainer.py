@@ -116,7 +116,7 @@ class Trainer():
             self.policy = nn.DataParallel(self.policy)
 
         for param_group in self.optimizer.param_groups:
-                param_group['lr'] = 0.5 * self.learning_rate
+                param_group['lr'] *= 0.5
 
         t0 = time.time()
         log.info('Start Training')
