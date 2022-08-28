@@ -25,6 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
+agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/3gyq5u0w agent.cilrs.wb_ckpt_step=29 \
 wb_project="il_leaderboard_roach" wb_group="Cluster Test" 'wb_name="Attention"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed-small/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
