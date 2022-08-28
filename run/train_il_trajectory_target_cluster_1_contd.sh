@@ -24,7 +24,7 @@
 
 train_il () {
 
-python -u train_il.py reset_step=true \
+python -u train_il.py reset_step=false \
 agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/vkz9zr8d agent.cilrs.wb_ckpt_step=29 \
 wb_project="il_leaderboard_roach" wb_group="train_trajectory_with_target_waypoint_new_data" 'wb_name="Trajectory Branch - No Control Branch (LR Scheduled)"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
