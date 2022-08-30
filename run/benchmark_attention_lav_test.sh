@@ -55,7 +55,7 @@
    wb_project=TCP-Benchmark \
    agent=$agent actors.hero.agent=$agent \
    agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/3gyq5u0w \
-   'wb_group="Attention - Control (Full Training)"' \
+   'wb_group="Attention Viz"' \
    test_suites=lav_test \
    seed=2022 \
    +wb_sub_group=leaderboard_dense-2021 \
