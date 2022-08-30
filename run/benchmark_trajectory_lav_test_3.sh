@@ -54,8 +54,8 @@
    python -u benchmark.py resume=true log_video=true \
    wb_project=TCP-Benchmark \
    agent=$agent actors.hero.agent=$agent \
-   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/vkz9zr8d \
-   'wb_group="Trajectory Branch - No Control Branch - Waypoint (Full Training)"' \
+   agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/1msjkee5 \
+   'wb_group="Trajectory Branch - No Control Branch - Waypoint (Full Training - LR Scheduled)"' \
    test_suites=lav_test \
    seed=2022 \
    +wb_sub_group=leaderboard_dense-2021 \

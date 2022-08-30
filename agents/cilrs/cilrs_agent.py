@@ -138,7 +138,7 @@ class CilrsAgent():
         self.supervision_dict = {}
 
 
-        return control_trajectory
+        return control_action
 
     def reset(self, log_file_path):
         # logger
