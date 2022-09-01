@@ -4,7 +4,7 @@ import os
 import pathlib
 import matplotlib.pyplot as plt
 
-CALCULATED_BEFORE = True
+CALCULATED_BEFORE = False
 
 def calculate_command_distribution(h5_file, min_step=0, max_step=2999):
     f = h5py.File(h5_file, 'r')
