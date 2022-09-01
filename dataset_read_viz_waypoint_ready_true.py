@@ -1,9 +1,6 @@
 import h5py
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import os
-import carla
 import math
 import cv2
 from cv2 import VideoWriter, VideoWriter_fourcc
