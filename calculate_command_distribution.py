@@ -27,7 +27,7 @@ def calculate_command_distribution(h5_file, min_step=0, max_step=2999):
 if __name__ == "__main__":
 
     # Fetch the h5 files
-    dataset_path = '/home/vaydingul/Documents/Codes/carla-dataset-detailed/expert/'
+    dataset_path = '/userfiles/vaydingul20/new_dataset_carla_9_10_1/expert/'
     if not CALCULATED_BEFORE:
 
         command_distribution_all = np.zeros((6,))
@@ -63,5 +63,5 @@ if __name__ == "__main__":
     plt.ylabel("Number of Occurences")
     plt.title("Command Distribution")
     plt.tight_layout()
-    plt.savefig(f"{dataset_path}_command_distribution.png")
+    plt.savefig(f"command_distribution.png")
     
