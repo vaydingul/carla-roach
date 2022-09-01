@@ -140,7 +140,7 @@ class CilrsWrapper():
         #log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
         
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
-        return control, np.array([acc, steer])
+        return control, np.array([throttle, steer, brake])
 
     def process_act_trajectory(self, action):
 
@@ -167,7 +167,32 @@ class CilrsWrapper():
 
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
 
-        return control, np.array([acc, steer])
+        return control, np.array([throttle, steer, brake])
+
+    def process_act_fusion(self, alpha, trajectory_specialized, control_action_array, control_trajectory_array):
+        
+        
+
+        if trajectory_specialized:
+
+            control = alpha * control_action_array + (1 - alpha) * control_trajectory_array
+
+        else:
+
+            control = alpha * control_trajectory_array + (1 - alpha) * control_action_array
+
+        
+        throttle = np.clip(control[0], 0, 0.75)
+        brake = np.clip(control[2], 0, 1)
+        steer = np.clip(control[1], -1, 1)
+
+        control_fused = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
+
+        return control_fused, np.array([throttle, steer, brake])
+
+        
+
+
 
 
     def process_supervision(self, supervision):
@@ -238,6 +263,7 @@ class CilrsWrapper():
 
         action_control_str = np.array2string(render_dict['action_control'], precision=2, separator=',', suppress_small=True)
         action_trajectory_str = np.array2string(np.array(render_dict['action_trajectory']), precision=2, separator=',', suppress_small=True)
+        action_fusion_str = np.array2string(np.array(render_dict['action_fusion']), precision=2, separator=',', suppress_small=True)
         control_output_str = np.array2string(render_dict['control_output'], precision=2, separator=',', suppress_small=True)
         trajectory_output_str = np.array2string(render_dict['trajectory_output'], precision=2, separator=',', suppress_small=True)
         predicted_waypoint_str = np.array2string(np.array(render_dict['pred_waypoint']), precision=2, separator=',', suppress_small=True)
@@ -248,16 +274,27 @@ class CilrsWrapper():
         im = cv2.putText(im, txt, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'a_trajectory:{action_trajectory_str}'
         im = cv2.putText(im, txt, (w,24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt = f'c_output:{control_output_str}'
+        txt = f'a_fusion:{action_fusion_str}'
         im = cv2.putText(im, txt, (w,36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt = f't_output:{trajectory_output_str}'
+        txt = f'c_output:{control_output_str}'
         im = cv2.putText(im, txt, (w,48), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f't_output:{trajectory_output_str}'
+        im = cv2.putText(im, txt, (w,60), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'pre_v:{render_dict["pred_speed"]}'
-        im = cv2.putText(im, txt, (w, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        im = cv2.putText(im, txt, (w, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'pred_waypoint:{predicted_waypoint_str}'
         im = cv2.putText(im, txt, (0, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'cmd: {render_dict["command"][0]} s{state_str}'
         im = cv2.putText(im, txt, (0, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        if render_dict["trajectory_specialized"]:
+            txt = f'TRAJECTORY'
+        else:
+            txt = f"CONTROL"
+
+        im = cv2.putText(im, txt, ((w//2) + 10, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+
+
 
         #for i, txt in enumerate(render_dict['reward_debug']['debug_texts'] +
         #                        render_dict['terminal_debug']['debug_texts']):

@@ -5,12 +5,14 @@ import copy
 from collections import deque
 import numpy as np
 from carla_gym.utils.config_utils import load_entry_point
-
+import math
 
 class CilrsAgent():
     def __init__(self, path_to_conf_file='config_agent.yaml'):
         self._logger = logging.getLogger(__name__)
         self._render_dict = None
+        self._steer_deque = deque(maxlen=10)
+
         self.setup(path_to_conf_file)
 
     def setup(self, path_to_conf_file):
@@ -117,15 +119,30 @@ class CilrsAgent():
         
         control_action, control_action_array = self._env_wrapper.process_act_control(actions_control)
         control_trajectory, control_trajectory_array = self._env_wrapper.process_act_trajectory(actions_trajectory)
-
+        
+        if len(self._steer_deque) < 10:
+            trajectory_specialized = True
+            self._steer_deque.append(abs(control_action_array[1]))
+        else:
+            if np.sum(np.array(self._steer_deque) > 0.1) > 5:
+                trajectory_specialized = False
+                self._steer_deque.append(abs(control_trajectory_array[1]))
+            else:
+                trajectory_specialized = True
+                self._steer_deque.append(abs(control_action_array[1]))
+        
+        control_fusion, control_fusion_array = self._env_wrapper.process_act_fusion(0.3, trajectory_specialized, control_action_array, control_trajectory_array)
+        
 
         self._render_dict = {
             'policy_input': policy_input,
             'command': command,
             'action_control': control_action_array,
             'action_trajectory': control_trajectory_array,
+            'action_fusion': control_fusion_array,
             'control_output': np.array(actions_control),
             'trajectory_output': np.array(actions_trajectory),
+            'trajectory_specialized': trajectory_specialized,
             'pred_speed': pred_speed,
             'pred_waypoint': pred_waypoint,
             'pred_attention_map': outputs['pred_attention_map'][0, :, 0, :, :],
@@ -139,7 +156,7 @@ class CilrsAgent():
         self._render_dict = copy.deepcopy(self._render_dict)
         self.supervision_dict = {}
 
-        return control_action
+        return control_fusion
 
     def reset(self, log_file_path):
         # logger
