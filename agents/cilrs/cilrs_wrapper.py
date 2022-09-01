@@ -33,7 +33,7 @@ class CilrsWrapper():
         # PID controllers for the vehicle control
         self.longitudinal_pid_controller = controller.PIDController([5, 0.025, 0.01])
         self.lateral_pid_controller = controller.PIDController([2.5, 0.05, 0.01])
-
+        
 
         self.speed_factor = 12.0
         self.value_factor = value_factor
@@ -140,7 +140,7 @@ class CilrsWrapper():
         #log.info(f"Throttle: {throttle}, Steer: {steer}, Brake: {brake}")
         
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
-        return control, np.array([acc, steer])
+        return control, np.array([throttle, steer, brake])
 
     def process_act_trajectory(self, action):
 
@@ -167,7 +167,32 @@ class CilrsWrapper():
 
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
 
-        return control, np.array([acc, steer])
+        return control, np.array([throttle, steer, brake])
+
+    def process_act_fusion(self, alpha, trajectory_specialized, control_action_array, control_trajectory_array):
+        
+        
+
+        if trajectory_specialized:
+
+            control = alpha * control_action_array + (1 - alpha) * control_trajectory_array
+
+        else:
+
+            control = alpha * control_trajectory_array + (1 - alpha) * control_action_array
+
+        
+        throttle = np.clip(control[0], 0, 0.75)
+        brake = np.clip(control[2], 0, 1)
+        steer = np.clip(control[1], -1, 1)
+
+        control_fused = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
+
+        return control_fused, np.array([throttle, steer, brake])
+
+        
+
+
 
 
     def process_supervision(self, supervision):
@@ -221,6 +246,10 @@ class CilrsWrapper():
         im_rgb = render_dict['central_rgb']
         #im_rgb = waypoint.draw_waypoints(im_rgb, render_dict['gt_waypoint'], render_dict['world_2_camera'], 100, COLOR_RED)
         #im_rgb = waypoint.draw_waypoints(im_rgb, render_dict['pred_waypoint'], render_dict['world_2_camera'], 100, COLOR_BLUE)
+
+        
+        number_of_steps = render_dict['pred_attention_map'].shape[0]
+
         h = im_birdview.shape[0]
         h_rgb, w_rgb = im_rgb.shape[0:2]
         w = int(w_rgb*(h/h_rgb))
@@ -228,8 +257,13 @@ class CilrsWrapper():
         im[:h, :w] = cv2.resize(im_rgb, (w, h))
         im[:h, w:w+h] = im_birdview
 
+
+        
+
+
         action_control_str = np.array2string(render_dict['action_control'], precision=2, separator=',', suppress_small=True)
         action_trajectory_str = np.array2string(np.array(render_dict['action_trajectory']), precision=2, separator=',', suppress_small=True)
+        action_fusion_str = np.array2string(np.array(render_dict['action_fusion']), precision=2, separator=',', suppress_small=True)
         control_output_str = np.array2string(render_dict['control_output'], precision=2, separator=',', suppress_small=True)
         trajectory_output_str = np.array2string(render_dict['trajectory_output'], precision=2, separator=',', suppress_small=True)
         predicted_waypoint_str = np.array2string(np.array(render_dict['pred_waypoint']), precision=2, separator=',', suppress_small=True)
@@ -240,21 +274,57 @@ class CilrsWrapper():
         im = cv2.putText(im, txt, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'a_trajectory:{action_trajectory_str}'
         im = cv2.putText(im, txt, (w,24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt = f'c_output:{control_output_str}'
+        txt = f'a_fusion:{action_fusion_str}'
         im = cv2.putText(im, txt, (w,36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        txt = f't_output:{trajectory_output_str}'
+        txt = f'c_output:{control_output_str}'
         im = cv2.putText(im, txt, (w,48), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        txt = f't_output:{trajectory_output_str}'
+        im = cv2.putText(im, txt, (w,60), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'pre_v:{render_dict["pred_speed"]}'
-        im = cv2.putText(im, txt, (w, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        im = cv2.putText(im, txt, (w, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'pred_waypoint:{predicted_waypoint_str}'
         im = cv2.putText(im, txt, (0, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt = f'cmd: {render_dict["command"][0]} s{state_str}'
         im = cv2.putText(im, txt, (0, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        if render_dict["trajectory_specialized"]:
+            txt = f'TRAJECTORY'
+        else:
+            txt = f"CONTROL"
+
+        im = cv2.putText(im, txt, ((w//2) + 10, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+
+
 
         #for i, txt in enumerate(render_dict['reward_debug']['debug_texts'] +
         #                        render_dict['terminal_debug']['debug_texts']):
         #    im = cv2.putText(im, txt, (3, (i+1)*12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-        return im
+
+
+        im_unit_h, im_unit_w = im.shape[0:2]
+
+        im_repeated = cv2.repeat(im, number_of_steps, 1)
+
+
+        for k in range(number_of_steps):
+
+            attention_map = render_dict['pred_attention_map'][k, :, :]
+            attention_map = attention_map.cpu().numpy()
+            attention_map = np.log(attention_map+1e-6)
+            attention_map = ((attention_map - np.min(attention_map)) / (np.max(attention_map) - np.min(attention_map))) * 255.0
+            attention_map = attention_map.astype(np.uint8)
+            attention_map = cv2.applyColorMap(attention_map, cv2.COLORMAP_JET)#np.repeat(attention_map[:, :, np.newaxis], 3, axis=2)
+            attention_map_resized = cv2.resize(attention_map, (w, h))
+            
+        # print(im[:h, :w].shape)
+        # print(attention_map_resized.shape)
+
+            offset_h = im_unit_h * k
+
+            im_repeated[offset_h:offset_h+h, :w] = cv2.addWeighted(im_repeated[offset_h:offset_h+h, :w], 0.5, attention_map_resized, 0.5, 0)
+
+
+        return im_repeated
 
     @staticmethod
     def draw_gnss(rendered_birdview, render_dict):

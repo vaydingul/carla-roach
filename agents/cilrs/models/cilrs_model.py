@@ -408,7 +408,7 @@ class CoILICRA(nn.Module):
             #log.info(f"Action Speed Error Shape: {action_trajectory[0].shape}")
             #log.info(f"Action Angle Error Shape: {action_trajectory[1].shape}")
 
-        return action_control, action_trajectory, outputs['pred_speed'].item(), outputs['pred_waypoint'][0].cpu().numpy()
+        return action_control, action_trajectory, outputs['pred_speed'].item(), outputs['pred_waypoint'][0].cpu().numpy(), outputs
 
     @staticmethod
     def extract_branch(action):
