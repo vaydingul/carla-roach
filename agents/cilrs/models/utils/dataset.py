@@ -4,13 +4,14 @@ import h5py
 import numpy as np
 import logging
 import torch
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader, Subset, WeightedRandomSampler
 from agents.cilrs.models.utils import waypoint
 
 from . import augmenter
 torch.set_printoptions(precision=8)
 log = logging.getLogger(__name__)
 
+COMMAND_WEIGHT = {1:1, 2:1, 3:1, 4:5, 5:1, 6:1}
 
 class CilrsDataset(Dataset):
     def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps_control=0, number_of_steps_waypoint = 4):
@@ -171,7 +172,7 @@ class CilrsDataset(Dataset):
 
 def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps_control = 0, number_of_steps_waypoint = 4):
 
-    def make_dataset(list_expert_h5, list_dagger_h5, is_train):
+    def make_dataset(list_expert_h5, list_dagger_h5, is_train, weighted_sampling = True):
 
         if is_train and (im_augmentation is not None):
             im_augmenter = getattr(augmenter, im_augmentation)
@@ -180,8 +181,28 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
 
         dataset = CilrsDataset(
             list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps_control, number_of_steps_waypoint)
-        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
-                                shuffle=True, drop_last=True, pin_memory=True)
+
+
+        if weighted_sampling:
+            
+            log.info(f"Command shape: {dataset[0][0].shape}")
+
+            weights = [COMMAND_WEIGHT[int(dataset[i][0].item())] for i in range(len(dataset))]
+
+            log.info(f"Weight shape: {len(weights)}")
+            log.info(f"Dataset shape: {len(dataset)}")
+            
+
+            sampler = WeightedRandomSampler(weights, len(dataset))
+
+            dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
+                                    sampler = sampler, drop_last=True, pin_memory=True)
+
+
+        else:
+
+            dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
+                                    shuffle=True, drop_last=True, pin_memory=True)
         return dataloader, dataset.expert_frames, dataset.dagger_frames
 
     dataset_path = Path(dataset_dir)
@@ -206,10 +227,10 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
 
     log.info(f'Loading training dataset')
     train, train_expert_frames, train_dagger_frames = make_dataset(
-        list_expert_h5_train, list_dagger_h5_train, True)
+        list_expert_h5_train, list_dagger_h5_train, True, weighted_sampling = True)
     log.info(f'Loading validation dataset')
     val, val_expert_frames, val_dagger_frames = make_dataset(
-        list_expert_h5_val, list_dagger_h5_val, False)
+        list_expert_h5_val, list_dagger_h5_val, False, weighted_sampling = False)
 
     log.info(f'TRAIN expert episodes: {len(list_expert_h5_train)}, DAGGER episodes: {len(list_dagger_h5_train)}, '
              f'expert hours: {train_expert_frames/10/3600:.2f}, DAGGER hours: {train_dagger_frames/10/3600:.2f}.')

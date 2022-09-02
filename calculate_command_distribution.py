@@ -4,7 +4,7 @@ import os
 import pathlib
 import matplotlib.pyplot as plt
 
-CALCULATED_BEFORE = False
+CALCULATED_BEFORE = True
 
 def calculate_command_distribution(h5_file, min_step=0, max_step=2999):
     f = h5py.File(h5_file, 'r')
@@ -27,7 +27,7 @@ def calculate_command_distribution(h5_file, min_step=0, max_step=2999):
 if __name__ == "__main__":
 
     # Fetch the h5 files
-    dataset_path = '/userfiles/vaydingul20/new_dataset_carla_9_10_1/expert/'
+    dataset_path = '/home/vaydingul/Documents/Codes/carla-dataset-detailed/expert/'
     if not CALCULATED_BEFORE:
 
         command_distribution_all = np.zeros((6,))
@@ -57,11 +57,12 @@ if __name__ == "__main__":
     "LEFT LANE CHANGE",
     "RIGHT LANE CHANGE"
     ]
+    print(command_distribution_all / np.sum(command_distribution_all))
     plt.figure()
-    plt.bar(commands, command_distribution_all, )
+    plt.bar(commands, command_distribution_all / np.sum(command_distribution_all))
     plt.xticks(commands, commands, rotation="vertical")
-    plt.ylabel("Number of Occurences")
+    plt.ylabel("Ratio of Number of Occurences")
     plt.title("Command Distribution")
     plt.tight_layout()
-    plt.savefig(f"command_distribution.png")
+    plt.savefig(f"command_distribution_new.png")
     

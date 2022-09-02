@@ -115,8 +115,8 @@ class Trainer():
         if self.num_gpus > 1:
             self.policy = nn.DataParallel(self.policy)
 
-        for param_group in self.optimizer.param_groups:
-                param_group['lr'] *= 0.5
+        #for param_group in self.optimizer.param_groups:
+        #        param_group['lr'] *= 0.5
 
         t0 = time.time()
         log.info('Start Training')
@@ -144,7 +144,7 @@ class Trainer():
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
 
             # update lr
-            #self.scheduler.step(val_loss)
+            self.scheduler.step()
 
             # save checkpoint
             # if (idx_epoch==0) or (idx_epoch>5 and val_loss < best_val_loss):
