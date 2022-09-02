@@ -92,7 +92,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"
+CACHE_DIR="/scratch/users/vaydingul20/carla-dataset-detailed/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
