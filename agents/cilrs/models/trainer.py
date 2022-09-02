@@ -198,7 +198,7 @@ class Trainer():
             #log.info(f"Predicted Waypoint Size {outputs['pred_waypoint'].size()}")
             #log.info(f"Actual Waypoint Size {policy_input['waypoint_location_ev'].size()}")
 
-            action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_location_ev'])
+            action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory = self.criterion.forward(outputs, supervision, command, policy_input['waypoint_location_ev'] if 'waypoint_location_ev' in policy_input else None)
             loss = action_loss + trajectory_loss + speed_loss + value_loss + feature_loss_control + feature_loss_trajectory
             loss.backward()
             self.optimizer.step()
@@ -240,7 +240,7 @@ class Trainer():
             with th.no_grad():
                 outputs = self.policy.forward(policy_input['im'], policy_input['state'])
                 action_loss, trajectory_loss, speed_loss, value_loss, feature_loss_control, feature_loss_trajectory = self.criterion.forward(
-                    outputs, supervision, command, policy_input['waypoint_location_ev'])
+                    outputs, supervision, command, policy_input['waypoint_location_ev'] if 'waypoint_location_ev' in policy_input else None)
                 loss = action_loss + trajectory_loss + speed_loss + value_loss + feature_loss_control + feature_loss_trajectory
                 losses.append(loss.item())
                 action_losses.append(action_loss.item())

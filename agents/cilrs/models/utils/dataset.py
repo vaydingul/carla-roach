@@ -30,6 +30,7 @@ class CilrsDataset(Dataset):
         self.number_of_steps_control = number_of_steps_control
         self.number_of_steps_waypoint = number_of_steps_waypoint
         self.count_array = []
+        self.weights = []
         if env_wrapper.view_augmentation:
             self._obs_keys_to_load = ['speed', 'gnss',
                                       'central_rgb', 'left_rgb', 'right_rgb', 'ego_vehicle_route']
@@ -66,7 +67,8 @@ class CilrsDataset(Dataset):
                                         group_step['obs'][obs_key],
                                         [h5_path, f'step_{i}', 'obs', obs_key]) for i in im_stack_idx_list]
 
-                                group_step['obs'][obs_key]
+                                self.weights.append(COMMAND_WEIGHT[int(obs_dict['gnss']["command"][0])])
+                                #group_step['obs'][obs_key]
                             else:
                                 obs_dict[obs_key] = self.read_group_to_dict(group_step['obs'][obs_key],
                                                                             [h5_path, step_str, 'obs', obs_key])
@@ -136,9 +138,12 @@ class CilrsDataset(Dataset):
         for k in supervision_vec[0].keys():
             supervision_[k] = torch.stack(
                 [supervision[k] for supervision in supervision_vec], dim=0)
+        try: 
+            policy_input['waypoint_location_ev'] = torch.stack(
+                policy_input_vec, dim=0)
+        except RuntimeError:
+            pass
 
-        policy_input['waypoint_location_ev'] = torch.stack(
-            policy_input_vec, dim=0)
         return command, policy_input, supervision_
 
     def _getitem(self, idx):
@@ -196,11 +201,16 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
 
             log.info(f"Command shape: {dataset[0][0].shape}")
 
-            weights = [COMMAND_WEIGHT[int(dataset[i][0].item())]
-                       for i in range(len(dataset))]
+            # weights = [COMMAND_WEIGHT[int(dataset[i][0].item()) + 1]
+            #             for i in range(len(dataset))]
 
+            weights = dataset.weights[:len(dataset)]
+            
             log.info(f"Weight shape: {len(weights)}")
             log.info(f"Dataset shape: {len(dataset)}")
+            log.info(f"=============== WEIGHT MATCH TEST ===============")
+            for k in np.random.choice(list(range(len(dataset))), 20):
+                print(f"{k} --> {dataset[k][0].item()} --> {weights[k]}")
 
             sampler = WeightedRandomSampler(weights, len(dataset))
 

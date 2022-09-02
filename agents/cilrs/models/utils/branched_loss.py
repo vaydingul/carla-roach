@@ -28,55 +28,51 @@ class BranchedLoss():
         self.n_branches = len(branch_weights)
         self.n_actions = len(action_weights)
 
-    def forward(self, outputs, supervisions, commands, waypoints):
+    def forward(self, outputs, supervisions, commands, waypoints = None):
         commands.clamp_(0, self.n_branches-1)
 
         # Number of steps might differ for trajectory and multi-step control
-        number_of_steps_control = outputs['pred_mu'].shape[1] - 1
-        number_of_steps_waypoint = outputs['pred_waypoint'].shape[1]
+        if "pred_mu" in outputs:
+            number_of_steps_control = outputs['pred_mu'].shape[1] - 1
+            device = outputs['pred_mu'].device
+        if "pred_waypoint" in outputs:
+            number_of_steps_waypoint = outputs['pred_waypoint'].shape[1]
+            device = outputs['pred_waypoint'].device
 
 
         # action loss
         branch_masks = self._get_branch_masks(
             commands, self.n_branches, self.n_actions)
-        action_loss = 0.0
-        if 'action_branches' in outputs:
-            # deterministic
-            raise NotImplementedError
-        else:
-            if self.action_kl:
-                # probability output, kl loss
-                kl_loss = 0.
-                assert self.n_branches == 1, "Number of branches must be 1 for multi-step architecture"
 
-                for i in range(number_of_steps_control + 1):
-                    dist_sup = Beta(
-                        supervisions['action_mu'][:, i, :], supervisions['action_sigma'][:, i, :])
-                    dist_pred = Beta(
-                        outputs['pred_mu'][:, i, :], outputs['pred_sigma'][:, i, :])
-                    kl_div = th.distributions.kl_divergence(
-                        dist_sup, dist_pred)
 
-                    for j in range(self.n_actions):
-                        loss_ij = th.mean(kl_div[:, j])
-                        if i == 0:
-                            kl_loss += loss_ij * self.action_weights[j]
-                        else:
-                            kl_loss += loss_ij * \
-                                self.action_weights[j] / number_of_steps_control
+        action_loss = th.zeros(1, device=device)
+        if ("pred_mu" in outputs) and ("pred_sigma" in outputs):
+            # probability output, kl loss
+            kl_loss = 0.
+            assert self.n_branches == 1, "Number of branches must be 1 for multi-step architecture"
 
-                action_loss += kl_loss
+            for i in range(number_of_steps_control + 1):
+                dist_sup = Beta(
+                    supervisions['action_mu'][:, i, :], supervisions['action_sigma'][:, i, :])
+                dist_pred = Beta(
+                    outputs['pred_mu'][:, i, :], outputs['pred_sigma'][:, i, :])
+                kl_div = th.distributions.kl_divergence(
+                    dist_sup, dist_pred)
 
-            if self.action_agg is not None:
-                # aggrevated
-                raise NotImplementedError
+                for j in range(self.n_actions):
+                    loss_ij = th.mean(kl_div[:, j])
+                    if i == 0:
+                        kl_loss += loss_ij * self.action_weights[j]
+                    else:
+                        kl_loss += loss_ij * \
+                            self.action_weights[j] / number_of_steps_control
 
-            if self.action_mll is not None:
-                # maximum log likelihood
-                raise NotImplementedError
-        # features_loss
+            action_loss += kl_loss
+
+
+        # features_loss_control
         feature_loss_control = th.zeros_like(action_loss)
-        if 'pred_features_control' in outputs and 'features' in supervisions:
+        if 'pred_features_control' in outputs and 'features' in supervisions and 'pred_mu' in outputs:
             feature_loss_control = 0.
 
             for i in range(number_of_steps_control + 1):

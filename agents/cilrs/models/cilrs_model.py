@@ -142,61 +142,63 @@ class CoILICRA(nn.Module):
         # action branches
         self.action_distribution = action_distribution
         assert action_distribution in ['beta', 'beta_shared', None]
-        if action_distribution == 'beta':
-            dim_out = 2
-            mu_branch_vector = []
-            sigma_branch_vector = []
-            for i in range(number_of_branches):
-                mu_branch_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
-                                                   'dropouts': branches_dropouts + [0.0],
-                                                   'end_layer': nn.Softplus}))
-                sigma_branch_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
-                                                      'dropouts': branches_dropouts + [0.0],
-                                                      'end_layer': nn.Softplus}))
-            self.mu_branches = Branching(mu_branch_vector)
-            self.sigma_branches = Branching(sigma_branch_vector)
-        elif action_distribution == 'beta_shared':
-            # shared branches_neurons
-            dim_out = 2
-            mu_branch_vector = []
-            sigma_branch_vector = []
 
-            for i in range(number_of_branches):
-                policy_head = FC(params={'neurons': [join_neurons[-1]] + branches_neurons,
-                                         'dropouts': branches_dropouts,
-                                         'end_layer': nn.ReLU})
-                dist_mu = nn.Sequential(nn.Linear(branches_neurons[-1], dim_out), nn.Softplus())
-                dist_sigma = nn.Sequential(nn.Linear(branches_neurons[-1], dim_out), nn.Softplus())
-
-                if rl_state_dict is not None:
-                    self._load_state_dict(policy_head, rl_state_dict, 'policy_head')
-                    self._load_state_dict(dist_mu, rl_state_dict, 'dist_mu')
-                    self._load_state_dict(dist_sigma, rl_state_dict, 'dist_sigma')
-                    log.info(f'Load rl_ckpt state dict for policy_head, dist_mu, dist_sigma.')
-
-                mu_branch_vector.append(nn.Sequential(policy_head, dist_mu))
-                sigma_branch_vector.append(nn.Sequential(policy_head, dist_sigma))
-
-            self.mu_branches = Branching(mu_branch_vector)
-            self.sigma_branches = Branching(sigma_branch_vector)
-            if freeze_action_head:
-                for param in self.mu_branches.parameters():
-                    param.requires_grad = False
-                for param in self.sigma_branches.parameters():
-                    param.requires_grad = False
-                log.info('Freeze action head weights.')
-
-        else:
-            if acc_as_action:
+        if number_of_steps_control >= 0:
+            if action_distribution == 'beta':
                 dim_out = 2
+                mu_branch_vector = []
+                sigma_branch_vector = []
+                for i in range(number_of_branches):
+                    mu_branch_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
+                                                    'dropouts': branches_dropouts + [0.0],
+                                                    'end_layer': nn.Softplus}))
+                    sigma_branch_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
+                                                        'dropouts': branches_dropouts + [0.0],
+                                                        'end_layer': nn.Softplus}))
+                self.mu_branches = Branching(mu_branch_vector)
+                self.sigma_branches = Branching(sigma_branch_vector)
+            elif action_distribution == 'beta_shared':
+                # shared branches_neurons
+                dim_out = 2
+                mu_branch_vector = []
+                sigma_branch_vector = []
+
+                for i in range(number_of_branches):
+                    policy_head = FC(params={'neurons': [join_neurons[-1]] + branches_neurons,
+                                            'dropouts': branches_dropouts,
+                                            'end_layer': nn.ReLU})
+                    dist_mu = nn.Sequential(nn.Linear(branches_neurons[-1], dim_out), nn.Softplus())
+                    dist_sigma = nn.Sequential(nn.Linear(branches_neurons[-1], dim_out), nn.Softplus())
+
+                    if rl_state_dict is not None:
+                        self._load_state_dict(policy_head, rl_state_dict, 'policy_head')
+                        self._load_state_dict(dist_mu, rl_state_dict, 'dist_mu')
+                        self._load_state_dict(dist_sigma, rl_state_dict, 'dist_sigma')
+                        log.info(f'Load rl_ckpt state dict for policy_head, dist_mu, dist_sigma.')
+
+                    mu_branch_vector.append(nn.Sequential(policy_head, dist_mu))
+                    sigma_branch_vector.append(nn.Sequential(policy_head, dist_sigma))
+
+                self.mu_branches = Branching(mu_branch_vector)
+                self.sigma_branches = Branching(sigma_branch_vector)
+                if freeze_action_head:
+                    for param in self.mu_branches.parameters():
+                        param.requires_grad = False
+                    for param in self.sigma_branches.parameters():
+                        param.requires_grad = False
+                    log.info('Freeze action head weights.')
+
             else:
-                dim_out = 3
-            branch_fc_vector = []
-            for i in range(number_of_branches):
-                branch_fc_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
-                                                   'dropouts': branches_dropouts + [0.0],
-                                                   'end_layer': end_layer_action}))
-            self.branches = Branching(branch_fc_vector)
+                if acc_as_action:
+                    dim_out = 2
+                else:
+                    dim_out = 3
+                branch_fc_vector = []
+                for i in range(number_of_branches):
+                    branch_fc_vector.append(FC(params={'neurons': [join_neurons[-1]] + branches_neurons + [dim_out],
+                                                    'dropouts': branches_dropouts + [0.0],
+                                                    'end_layer': end_layer_action}))
+                self.branches = Branching(branch_fc_vector)
 
         if use_multi_step_waypoint:
 
@@ -258,9 +260,11 @@ class CoILICRA(nn.Module):
             )
 
         else:
-
-            self.multi_step_control = multi_step_control
-            self.multi_step_waypoint = multi_step_waypoint
+            
+            if use_multi_step_control:
+                self.multi_step_control = multi_step_control
+            if use_multi_step_waypoint:
+                self.multi_step_waypoint = multi_step_waypoint
 
 
         # init
@@ -286,17 +290,17 @@ class CoILICRA(nn.Module):
         
         # Feed to ResNet34, take the output of the avgpool and FC
         x, F = self.perception(im) # Image feature
-        log.info(f"x shape: {x.shape}")
-        log.info(f"F shape: {F.shape}")
+        #log.info(f"x shape: {x.shape}")
+        #log.info(f"F shape: {F.shape}")
 
 
         """ ###### APPLY THE MEASUREMENT MODULE """
         m = self.measurements(state)
-        log.info(f"m shape: {m.shape}")
+        #log.info(f"m shape: {m.shape}")
 
         """ Join measurements and perception"""
         j_traj = self.join(x, m)
-        log.info(f"j_traj shape: {j_traj.shape}")
+        #log.info(f"j_traj shape: {j_traj.shape}")
 
         # build outputs dict
         outputs = {'pred_speed': self.speed_branch(x)}
@@ -305,27 +309,33 @@ class CoILICRA(nn.Module):
             outputs['pred_value'] = self.value_branch(j_traj)
 
         waypoint = th.zeros((j_traj.shape[0], 2), dtype = j_traj.dtype, device=j_traj.device)
-        log.info(f"waypoint shape: {waypoint.shape}")
+        #log.info(f"waypoint shape: {waypoint.shape}")
 
         if self.use_trajectory_guided_control:
             
             assert self.number_of_steps_control == self.number_of_steps_waypoint, "Number of steps for control and trajectory branch must be equal!"
             
-            log.info(f"Attention Dims: {self.perception.attention_dims}")
+            #log.info(f"Attention Dims: {self.perception.attention_dims}")
             initial_attention_map = th.softmax(self.attention_encoder_1(th.cat([j_traj, m], dim=1)),dim=1).view(-1, 1, *(self.perception.attention_dims[1:]))
-            log.info(f"initial_attention_map shape: {initial_attention_map.shape}")
+            #log.info(f"initial_attention_map shape: {initial_attention_map.shape}")
             attended_features = th.sum(initial_attention_map * F, dim = (2, 3))
-            log.info(f"attended_features shape: {attended_features.shape}")
+            #log.info(f"attended_features shape: {attended_features.shape}")
             j_control = self.attention_encoder_2(th.cat([attended_features, m], dim=1))
-            log.info(f"j_control shape: {j_control.shape}")
+            #log.info(f"j_control shape: {j_control.shape}")
 
             mu = self.mu_branches(j_control)[0]
-            log.info(f"mu shape: {mu.shape}")
+            #log.info(f"mu shape: {mu.shape}")
             sigma = self.sigma_branches(j_control)[0]
-            log.info(f"sigma shape: {sigma.shape}")
+            #log.info(f"sigma shape: {sigma.shape}")
 
             pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[:, 1:3], self.perception.attention_dims)
-        
+            outputs['pred_mu'] = pred_mu
+            outputs['pred_sigma'] = pred_sigma
+            outputs['pred_features_control'] = pred_j_control
+            outputs['pred_waypoint'] = pred_waypoint
+            outputs['pred_features_trajectory'] = j_traj
+            outputs['pred_attention_map'] = pred_attention_map
+
 
 
         else:
@@ -333,29 +343,15 @@ class CoILICRA(nn.Module):
             if self.use_multi_step_control:
 
                 pred_mu, pred_sigma, pred_j_control = self.multi_step_control(j_traj)
-
+                outputs['pred_mu'] = pred_mu
+                outputs['pred_sigma'] = pred_sigma
+                outputs['pred_features_control'] = pred_j_control
             if self.use_multi_step_waypoint:
 
                 pred_waypoint = self.multi_step_waypoint(j_traj, state[:, 1:3])
+                outputs['pred_waypoint'] = pred_waypoint
+                outputs['pred_features_trajectory'] = j_traj
 
-        
-        outputs['pred_j_control'] = pred_j_control
-        outputs['pred_waypoint'] = pred_waypoint
-        outputs['pred_attention_map'] = pred_attention_map
-
-
-        if self.action_distribution is None:
-            #outputs['action_branches'] = self.branches(j)
-            raise NotImplementedError
-        else:
-            outputs['pred_mu'] = pred_mu
-            outputs['pred_sigma'] = pred_sigma
-
-
-        if self.dim_features_supervision > 0:
-            outputs['pred_features_control'] = pred_j_control
-            outputs['pred_features_trajectory'] = j_traj
-        
         
         return outputs
 

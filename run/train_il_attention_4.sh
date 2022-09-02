@@ -25,8 +25,8 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Attention Smart Sampling"' \
-dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed/"] \
+wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Trajectory - Temporal"' \
+dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -43,7 +43,7 @@ agent.cilrs.training.kwargs.batch_size=16 \
 agent.cilrs.training.kwargs.num_workers=4 \
 agent.cilrs.policy.kwargs.use_multi_step_control=true \
 agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \
-agent.cilrs.policy.kwargs.use_trajectory_guided_control=true \
+agent.cilrs.policy.kwargs.use_trajectory_guided_control=false \
 agent.cilrs.policy.kwargs.initial_hidden_zeros_control=true \
 agent.cilrs.policy.kwargs.initial_hidden_zeros_trajectory=false \
 agent.cilrs.policy.kwargs.number_of_steps_control=4 \
@@ -92,7 +92,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed/"
+CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"
