@@ -11,10 +11,17 @@ from . import augmenter
 torch.set_printoptions(precision=8)
 log = logging.getLogger(__name__)
 
-COMMAND_WEIGHT = {1:1, 2:1, 3:1, 4:5, 5:1, 6:1}
+COMMAND_WEIGHT = {1: 1.07526882,
+                  2: 0.92859133,
+                  3: 0.45936883,
+                  4: 0.26099439,
+                  5: 4.99251123,
+                  6: 4.8828125
+                  }
+
 
 class CilrsDataset(Dataset):
-    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps_control=0, number_of_steps_waypoint = 4):
+    def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None, number_of_steps_control=0, number_of_steps_waypoint=4):
 
         self._env_wrapper = env_wrapper
         self._im_augmenter = im_augmenter
@@ -42,13 +49,13 @@ class CilrsDataset(Dataset):
         for h5_path in list_h5:
             log.info(f'Loading: {h5_path}')
             with h5py.File(h5_path, 'r', libver='latest', swmr=True) as hf:
-                for step_str, group_step in sorted(hf.items(), key = lambda x: int(x[0].split('_')[-1])):
+                for step_str, group_step in sorted(hf.items(), key=lambda x: int(x[0].split('_')[-1])):
                     if group_step.attrs['critical']:
                         current_step = int(step_str.split('_')[-1])
                         #log.info(f"im_stack_idx: {self._im_stack_idx}")
                         im_stack_idx_list = [
                             max(0, current_step+i+1) for i in self._im_stack_idx]
-                        
+
                         #log.info(f"im_stack_idx_list: {im_stack_idx_list}")
 
                         obs_dict = {}
@@ -72,7 +79,7 @@ class CilrsDataset(Dataset):
                         n_frames += 1
 
             self.count_array.append(n_frames)
-        
+
         self.count_array = np.array(self.count_array)
         return n_frames
 
@@ -92,14 +99,16 @@ class CilrsDataset(Dataset):
     def __getitem__(self, index: int):
 
         # if (index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) % 1000  < max(self.number_of_steps_control, self.number_of_steps_waypoint):
-        
+
         #     index = ((index + max(self.number_of_steps_control, self.number_of_steps_waypoint)) // 1000) * 1000
 
         step = max(self.number_of_steps_control, self.number_of_steps_waypoint)
 
-        I, = np.nonzero(np.logical_and((((index + step) - self.count_array) >= 0) , (((index + step) - self.count_array) < step)))
-        
-        if I.size != 0: index = self.count_array[I[-1]]
+        I, = np.nonzero(np.logical_and((((index + step) - self.count_array)
+                                        >= 0), (((index + step) - self.count_array) < step)))
+
+        if I.size != 0:
+            index = self.count_array[I[-1]]
 
         supervision_vec = []
         policy_input_vec = []
@@ -107,7 +116,7 @@ class CilrsDataset(Dataset):
         supervision_ = {}
 
         command, policy_input, supervision = self._getitem(index)
-        
+
         # command_vec.append(command)
         # policy_input_vec.append(policy_input)
         supervision_vec.append(supervision)
@@ -120,15 +129,16 @@ class CilrsDataset(Dataset):
             _, policy_input_, supervision = self._getitem(ix)
             supervision_vec.append(supervision)
 
-            waypoint_ev_frame = waypoint.world_2_ev(policy_input_['waypoint_location'], ev_transform_inverse)
+            waypoint_ev_frame = waypoint.world_2_ev(
+                policy_input_['waypoint_location'], ev_transform_inverse)
             policy_input_vec.append(waypoint_ev_frame)
-
 
         for k in supervision_vec[0].keys():
             supervision_[k] = torch.stack(
                 [supervision[k] for supervision in supervision_vec], dim=0)
 
-        policy_input['waypoint_location_ev'] = torch.stack(policy_input_vec, dim=0)
+        policy_input['waypoint_location_ev'] = torch.stack(
+            policy_input_vec, dim=0)
         return command, policy_input, supervision_
 
     def _getitem(self, idx):
@@ -170,9 +180,9 @@ class CilrsDataset(Dataset):
         return command, policy_input, supervision
 
 
-def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps_control = 0, number_of_steps_waypoint = 4):
+def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8, number_of_steps_control=0, number_of_steps_waypoint=4):
 
-    def make_dataset(list_expert_h5, list_dagger_h5, is_train, weighted_sampling = True):
+    def make_dataset(list_expert_h5, list_dagger_h5, is_train, weighted_sampling=True):
 
         if is_train and (im_augmentation is not None):
             im_augmenter = getattr(augmenter, im_augmentation)
@@ -182,27 +192,26 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
         dataset = CilrsDataset(
             list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter, number_of_steps_control, number_of_steps_waypoint)
 
-
         if weighted_sampling:
-            
+
             log.info(f"Command shape: {dataset[0][0].shape}")
 
-            weights = [COMMAND_WEIGHT[int(dataset[i][0].item())] for i in range(len(dataset))]
+            weights = [COMMAND_WEIGHT[int(dataset[i][0].item())]
+                       for i in range(len(dataset))]
 
             log.info(f"Weight shape: {len(weights)}")
             log.info(f"Dataset shape: {len(dataset)}")
-            
 
             sampler = WeightedRandomSampler(weights, len(dataset))
 
             dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
-                                    sampler = sampler, drop_last=True, pin_memory=True)
-
+                                    sampler=sampler, drop_last=True, pin_memory=True)
 
         else:
 
             dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
                                     shuffle=True, drop_last=True, pin_memory=True)
+
         return dataloader, dataset.expert_frames, dataset.dagger_frames
 
     dataset_path = Path(dataset_dir)
@@ -227,10 +236,10 @@ def get_dataloader(dataset_dir, env_wrapper, im_augmentation, batch_size=32, num
 
     log.info(f'Loading training dataset')
     train, train_expert_frames, train_dagger_frames = make_dataset(
-        list_expert_h5_train, list_dagger_h5_train, True, weighted_sampling = True)
+        list_expert_h5_train, list_dagger_h5_train, True, weighted_sampling=True)
     log.info(f'Loading validation dataset')
     val, val_expert_frames, val_dagger_frames = make_dataset(
-        list_expert_h5_val, list_dagger_h5_val, False, weighted_sampling = False)
+        list_expert_h5_val, list_dagger_h5_val, False, weighted_sampling=False)
 
     log.info(f'TRAIN expert episodes: {len(list_expert_h5_train)}, DAGGER episodes: {len(list_dagger_h5_train)}, '
              f'expert hours: {train_expert_frames/10/3600:.2f}, DAGGER hours: {train_dagger_frames/10/3600:.2f}.')

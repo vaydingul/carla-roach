@@ -26,7 +26,7 @@ train_il () {
 
 python -u train_il.py reset_step=false \
 wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Attention Smart Sampling"' \
-dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"] \
+dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
 agent.cilrs.training.kwargs.branch_weights=[1.0] \
@@ -92,7 +92,7 @@ cache_dir="$1"
 #NODE_ROOT=/home/vaydingul20/tmp_data/
 #mkdir -p "${NODE_ROOT}"
 #CACHE_DIR=$(mktemp -d --tmpdir="${NODE_ROOT}")
-CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"
+CACHE_DIR="/home/vaydingul/Documents/Codes/carla-dataset-detailed/"
 echo "CACHE_DIR: ${CACHE_DIR}"
 
 train_il "${CACHE_DIR}"

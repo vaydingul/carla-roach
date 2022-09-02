@@ -286,17 +286,17 @@ class CoILICRA(nn.Module):
         
         # Feed to ResNet34, take the output of the avgpool and FC
         x, F = self.perception(im) # Image feature
-        # log.info(f"x shape: {x.shape}")
-        # log.info(f"F shape: {F.shape}")
+        log.info(f"x shape: {x.shape}")
+        log.info(f"F shape: {F.shape}")
 
 
         """ ###### APPLY THE MEASUREMENT MODULE """
         m = self.measurements(state)
-        # log.info(f"m shape: {m.shape}")
+        log.info(f"m shape: {m.shape}")
 
         """ Join measurements and perception"""
         j_traj = self.join(x, m)
-        # log.info(f"j_traj shape: {j_traj.shape}")
+        log.info(f"j_traj shape: {j_traj.shape}")
 
         # build outputs dict
         outputs = {'pred_speed': self.speed_branch(x)}
@@ -305,24 +305,24 @@ class CoILICRA(nn.Module):
             outputs['pred_value'] = self.value_branch(j_traj)
 
         waypoint = th.zeros((j_traj.shape[0], 2), dtype = j_traj.dtype, device=j_traj.device)
-        # log.info(f"waypoint shape: {waypoint.shape}")
+        log.info(f"waypoint shape: {waypoint.shape}")
 
         if self.use_trajectory_guided_control:
             
             assert self.number_of_steps_control == self.number_of_steps_waypoint, "Number of steps for control and trajectory branch must be equal!"
             
-            # log.info(f"Attention Dims: {self.perception.attention_dims}")
+            log.info(f"Attention Dims: {self.perception.attention_dims}")
             initial_attention_map = th.softmax(self.attention_encoder_1(th.cat([j_traj, m], dim=1)),dim=1).view(-1, 1, *(self.perception.attention_dims[1:]))
-            # log.info(f"initial_attention_map shape: {initial_attention_map.shape}")
+            log.info(f"initial_attention_map shape: {initial_attention_map.shape}")
             attended_features = th.sum(initial_attention_map * F, dim = (2, 3))
-            # log.info(f"attended_features shape: {attended_features.shape}")
+            log.info(f"attended_features shape: {attended_features.shape}")
             j_control = self.attention_encoder_2(th.cat([attended_features, m], dim=1))
-            # log.info(f"j_control shape: {j_control.shape}")
+            log.info(f"j_control shape: {j_control.shape}")
 
             mu = self.mu_branches(j_control)[0]
-            # log.info(f"mu shape: {mu.shape}")
+            log.info(f"mu shape: {mu.shape}")
             sigma = self.sigma_branches(j_control)[0]
-            # log.info(f"sigma shape: {sigma.shape}")
+            log.info(f"sigma shape: {sigma.shape}")
 
             pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[:, 1:3], self.perception.attention_dims)
         

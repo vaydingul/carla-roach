@@ -88,8 +88,9 @@ class ResNet(nn.Module):
             x3 = self.layer3(x2)
             x4 = self.layer4(x3)
 
+            self.attention_dims = x4.shape[1:]
+
             x = self.avgpool(x4)
-            self.attention_dims = x.shape[1:]
             x = x.view(x.size(0), -1)
             self.n_flatten = x.shape[1]
         # print(n_flatten)
@@ -127,11 +128,11 @@ class ResNet(nn.Module):
         x1 = self.layer1(x0)
         x2 = self.layer2(x1)
         x3 = self.layer3(x2)
-        x4 = self.layer4(x3)
+        F = self.layer4(x3)
 
-        F = self.avgpool(x4)
+        x = self.avgpool(F)
 
-        x = F.view(F.size(0), -1)
+        x = x.view(x.size(0), -1)
         x = self.fc(x)
 
         return x, F
