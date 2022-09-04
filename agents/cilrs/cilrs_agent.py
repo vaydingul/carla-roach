@@ -145,7 +145,7 @@ class CilrsAgent():
             'trajectory_specialized': trajectory_specialized,
             'pred_speed': pred_speed,
             'pred_waypoint': pred_waypoint,
-            'pred_attention_map': outputs['pred_attention_map'][0, :, 0, :, :],
+            'pred_attention_map': outputs['pred_attention_map_1'][0, :, 0, :, :],
             'world_2_camera': policy_input['world_2_camera'],
             'camera_2_world': policy_input['camera_2_world'],
             'obs_configs': self._obs_configs,

@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="Smart Sampling" 'wb_name="Trajectory - Temporal - Attention"' \
+wb_project="il_leaderboard_roach" wb_group="Smart Sampling" 'wb_name="Trajectory - Temporal - Attention (Change Attention Output)"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \

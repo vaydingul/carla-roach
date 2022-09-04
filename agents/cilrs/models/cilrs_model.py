@@ -328,13 +328,14 @@ class CoILICRA(nn.Module):
             sigma = self.sigma_branches(j_control)[0]
             #log.info(f"sigma shape: {sigma.shape}")
 
-            pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[:, 1:3], self.perception.attention_dims)
+            pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map_1, pred_attention_map_2 = self.multi_step_trajectory_guided_control(j_control, mu, sigma, j_traj, waypoint, F, state[:, 1:3], self.perception.attention_dims)
             outputs['pred_mu'] = pred_mu
             outputs['pred_sigma'] = pred_sigma
             outputs['pred_features_control'] = pred_j_control
             outputs['pred_waypoint'] = pred_waypoint
             outputs['pred_features_trajectory'] = j_traj
-            outputs['pred_attention_map'] = pred_attention_map
+            outputs['pred_attention_map_1'] = pred_attention_map_1
+            outputs['pred_attention_map_2'] = pred_attention_map_2
 
 
 

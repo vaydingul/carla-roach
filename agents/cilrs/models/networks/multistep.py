@@ -382,8 +382,8 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 		sigma_vector = []
 		waypoint_vector = []
 		j_control_vector = []
-		attention_map_vector = []
-
+		attention_map_1_vector = [] # before softmax
+		attention_map_2_vector = [] # after softmax
 		h_control = torch.zeros_like(j_control, dtype = j_control.dtype, device = j_control.device)
 
 		mu_vector.append(mu)
@@ -397,9 +397,10 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 
 			h_traj, waypoint = self.multi_step_trajectory_cell(h_traj, waypoint, target_waypoint)
 			h_control = self.multi_step_control_cell.recurrent_cell(torch.cat([mu, sigma, j_control], dim = 1), h_control)
-			
-			attention_map = torch.softmax(self.attention_encoder_1(torch.cat([h_traj, h_control], dim = 1)), dim = 1).view(-1, 1, *(attention_dims[1:]))
-			attended_features = torch.sum(attention_map * F, dim = (2, 3))
+
+			attention_map_1 = self.attention_encoder_1(torch.cat([h_traj, h_control], dim = 1)).view(-1, 1, *(attention_dims[1:]))
+			attention_map_2 = torch.softmax(self.attention_encoder_1(torch.cat([h_traj, h_control], dim = 1)), dim = 1).view(-1, 1, *(attention_dims[1:]))
+			attended_features = torch.sum(attention_map_2 * F, dim = (2, 3))
 			j_control = self.attention_encoder_2(torch.cat([attended_features, h_control], dim = 1))
 
 			delta_j_control = self.multi_step_control_cell.encoder(j_control)[0]
@@ -413,16 +414,18 @@ class MultiStepTrajectoryGuidedControl(nn.Module):
 			sigma_vector.append(sigma)
 			waypoint_vector.append(waypoint)
 			j_control_vector.append(j_control)
-			attention_map_vector.append(attention_map)
+			attention_map_1_vector.append(attention_map_1)
+			attention_map_2_vector.append(attention_map_2)
 
 		pred_mu = torch.stack(mu_vector, dim = 1)
 		pred_sigma = torch.stack(sigma_vector, dim = 1)
 		pred_waypoint = torch.stack(waypoint_vector, dim = 1)
 		pred_j_control = torch.stack(j_control_vector, dim = 1)
-		pred_attention_map = torch.stack(attention_map_vector, dim = 1)
+		pred_attention_map_1 = torch.stack(attention_map_1_vector, dim = 1)
+		pred_attention_map_2 = torch.stack(attention_map_2_vector, dim = 1)
 
 
-		return pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map
+		return pred_mu, pred_sigma, pred_waypoint, pred_j_control, pred_attention_map_1, pred_attention_map_2
 
 
 
