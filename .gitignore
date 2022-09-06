@@ -6,11 +6,14 @@ __pycache__/
 logs/
 outputs/
 wandb/
+
 *.pyc
 *.h5
 *.mp4
 *.npz
 *.png
+*.txt
+
 .vscode/settings.json
 carla_gym/envs/__pycache__/__init__.cpython-37.pyc
 resnet_shape.txt

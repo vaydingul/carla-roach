@@ -310,7 +310,7 @@ class CilrsWrapper():
 
             attention_map = render_dict['pred_attention_map'][k, :, :]
             attention_map = attention_map.cpu().numpy()        
-            attention_map = np.log(attention_map)
+            #attention_map = np.log(attention_map)
             attention_map = ((attention_map - np.min(attention_map)) / (np.max(attention_map) - np.min(attention_map))) * 255.0
             attention_map = attention_map.astype(np.uint8)
             attention_map = cv2.applyColorMap(attention_map, cv2.COLORMAP_JET)#np.repeat(attention_map[:, :, np.newaxis], 3, axis=2)
