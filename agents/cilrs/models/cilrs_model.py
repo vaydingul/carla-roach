@@ -92,15 +92,15 @@ class CoILICRA(nn.Module):
             input_states_len += 6
         self.measurements = FC(params={'neurons': [input_states_len] + measurements_neurons,
                                        'dropouts': measurements_dropouts,
-                                       'end_layer': None})
+                                       'end_layer': nn.ReLU})
 
         self.attention_encoder_1 = FC(params={'neurons': [measurements_neurons[-1] + dim_features_supervision, int(np.prod(self.perception.attention_dims[1:]))],
                                             'dropouts': [0.0], 
-                                            'end_layer': None})
+                                            'end_layer': nn.ReLU})
 
         self.attention_encoder_2 = FC(params={'neurons': [self.perception.attention_dims[0] + measurements_neurons[-1], dim_features_supervision],
                                             'dropouts': [0.0], 
-                                            'end_layer': None})
+                                            'end_layer': nn.ReLU})
 
 
         # concat/join block
@@ -108,7 +108,7 @@ class CoILICRA(nn.Module):
                                  FC(params={'neurons':
                                             [measurements_neurons[-1] + perception_output_neurons] + join_neurons,
                                             'dropouts': join_dropouts,
-                                            'end_layer': None}),
+                                            'end_layer': nn.ReLU}),
                                  'mode': 'cat'})
 
         if squash_outputs:
@@ -224,7 +224,7 @@ class CoILICRA(nn.Module):
             'encoder' : FC(params = {
                 'neurons' : [join_neurons[-1]] + multi_step_neurons + [join_neurons[-1]],
                 'dropouts' : multi_step_dropouts + [0.0],
-                'end_layer' : None
+                'end_layer' : nn.ReLU
             }
             ),
             'policy_head_mu' : self.mu_branches,
