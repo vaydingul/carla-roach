@@ -25,7 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
-wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Trajectory - Temporal - Attention"' \
+wb_project="il_leaderboard_roach" wb_group="Script Test" 'wb_name="Trajectory - Temporal - Attention - New Model - Table Check"' \
 dagger_datasets=["/home/vaydingul/Documents/Codes/carla-dataset-detailed-small/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
 agent.cilrs.policy.kwargs.number_of_branches=1 \
@@ -39,7 +39,7 @@ agent.cilrs.env_wrapper.kwargs.dim_features_supervision=256 \
 agent.cilrs.training.kwargs.features_weight=0.05 \
 agent.cilrs.training.kwargs.action_loss_weight=0.5 \
 agent.cilrs.training.kwargs.trajectory_weight=0.5 \
-agent.cilrs.training.kwargs.batch_size=16 \
+agent.cilrs.training.kwargs.batch_size=1 \
 agent.cilrs.training.kwargs.num_workers=4 \
 agent.cilrs.policy.kwargs.use_multi_step_control=true \
 agent.cilrs.policy.kwargs.use_multi_step_waypoint=true \

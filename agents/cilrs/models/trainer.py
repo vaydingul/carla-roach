@@ -9,11 +9,20 @@ import numpy as np
 import copy
 from itertools import islice, tee
 import collections
-
+import wandb
 from .utils.dataset import get_dataloader
 from .utils.branched_loss import BranchedLoss
 
 log = logging.getLogger(__name__)
+
+COMMANDS = ["TURN LEFT",
+"TURN RIGHT",
+"STRAIGHT",
+"LANE FOLLOWING",
+"LEFT LANE CHANGE",
+"RIGHT LANE CHANGE"
+]
+
 
 class Trainer():
     def __init__(self, policy,
@@ -48,6 +57,9 @@ class Trainer():
 
         self.number_of_steps_control = policy.number_of_steps_control
         self.number_of_steps_waypoint= policy.number_of_steps_waypoint
+
+        self.command_distribution = np.zeros(6, dtype=np.int32)
+
         # multi-gpu
         self.num_gpus = th.cuda.device_count()
 
@@ -126,6 +138,8 @@ class Trainer():
         for idx_epoch in range(self.starting_epoch, train_epochs):
             # train
             self._train(train_dataset)
+            
+            table = wandb.Table(data = [[c, COMMANDS[i]] for (i, c) in enumerate(self.command_distribution)], columns = ["Count", "Name"])
 
             # val
             t_val = time.time()
@@ -139,6 +153,7 @@ class Trainer():
                 'val/value_loss': val_value_loss,
                 'val/feature_loss_control': val_feature_loss_control,
                 'val/feature_loss_trajectory': val_feature_loss_trajectory,
+                'train/command_distribution': wandb.plot.bar(table=table, value = "Count", label = "Name", title = "Command Distribution"),
                 'time/val_time': time.time()-t_val
             }, step=self.iteration)
             wandb.log({'train/lr': self.optimizer.param_groups[0]['lr']}, step=self.iteration)
@@ -203,6 +218,12 @@ class Trainer():
             loss.backward()
             self.optimizer.step()
 
+            for k in range(command.shape[0]):
+                
+                self.command_distribution[int(command[k].item())] += 1
+                
+
+
             wandb.log({
                 'train/loss': loss.item(),
                 'train/action_loss': action_loss.item(),
@@ -211,7 +232,6 @@ class Trainer():
                 'train/value_loss': value_loss.item(),
                 'train/feature_loss_control': feature_loss_control.item(),
                 'train/feature_loss_trajectory': feature_loss_trajectory.item(),
-                'time/train_fps': self.batch_size / (time.time()-t0),
                 'time/train_data_read_duration': self.batch_size / t_data_read_duration
             }, step=self.iteration)
             #log.info(f'Train FPS: {self.batch_size / (time.time()-t0):.2f}')

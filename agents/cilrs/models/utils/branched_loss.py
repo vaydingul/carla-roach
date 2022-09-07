@@ -29,7 +29,7 @@ class BranchedLoss():
         self.n_actions = len(action_weights)
 
     def forward(self, outputs, supervisions, commands, waypoints = None):
-        commands.clamp_(0, self.n_branches-1)
+        #commands.clamp_(0, self.n_branches-1)
 
         # Number of steps might differ for trajectory and multi-step control
         if "pred_mu" in outputs:
