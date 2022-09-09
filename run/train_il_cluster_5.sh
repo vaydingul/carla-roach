@@ -25,6 +25,7 @@
 train_il () {
 
 python -u train_il.py reset_step=false \
+agent.cilrs.wb_run_path=vaydingul/il_leaderboard_roach/zir7tp65 \
 wb_project="il_leaderboard_roach" wb_group="Smart Sampling" 'wb_name="Trajectory - Temporal - Attention (Change Attention Output - Add ReLU)"' \
 dagger_datasets=["/scratch/users/vaydingul20/carla-dataset-detailed/"] \
 agent.cilrs.env_wrapper.kwargs.input_states=[speed,vec,cmd] \
